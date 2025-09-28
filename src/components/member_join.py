@@ -1,5 +1,6 @@
 from discord import ButtonStyle, Member, User, ui
 
+from src._channels import LukChannels
 from src._colors import LukColors
 from src._emojis import LukEmojis
 
@@ -9,7 +10,7 @@ class MemberJoinView(ui.LayoutView):
         super().__init__()
 
         header = ui.TextDisplay["MemberJoinView"](
-            content="### Welcome to LUK.GG!",
+            content=f"### Welcome {user.display_name}!",
         )
 
         text = ui.TextDisplay["MemberJoinView"](
@@ -23,19 +24,25 @@ class MemberJoinView(ui.LayoutView):
 
         user_icon = ui.Thumbnail["MemberJoinView"](media=user.display_avatar.url)
 
-        website_button = ui.ActionRow(
+        action_row = ui.ActionRow(
             ui.Button["MemberJoinView"](
                 label="LUK.GG",
                 emoji=LukEmojis.luk_logo_rounded,
                 style=ButtonStyle.link,
                 url="https://luk.gg",
             ),
+            ui.Button["MemberJoinView"](
+                label="Info & Rules",
+                emoji=LukEmojis.lukchan_noted,
+                style=ButtonStyle.link,
+                url=LukChannels.rules.url,
+            ),
         )
 
         self.add_item(
             ui.Container(
                 ui.Section(header, text, accessory=user_icon),
-                website_button,
+                action_row,
                 accent_color=LukColors.primary_blue,
             ),
         )
