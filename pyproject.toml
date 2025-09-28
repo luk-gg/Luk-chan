@@ -13,3 +13,7 @@ license = { text = "MIT" }
 
 [tool.pdm]
 distribution = false
+
+[tool.pdm.scripts]
+start = { cmd = "python main.py", env_file.override = ".env" }
+
