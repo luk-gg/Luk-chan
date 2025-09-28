@@ -14,3 +14,4 @@ class _LukChannel:
 
 class LukChannels:
     rules = _LukChannel(862607056132112394)
+    welcome = _LukChannel(862600196704829443)
