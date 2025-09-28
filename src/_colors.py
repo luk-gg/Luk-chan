@@ -2,4 +2,4 @@ from discord import Color
 
 
 class LukColors:
-    welcome_blue = Color(1810428)
+    primary_blue = Color(1810428)
