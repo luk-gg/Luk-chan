@@ -47,6 +47,7 @@ A Discord bot for the **LUK.GG** gaming community, designed to enhance user expe
    ```
 
 4. **Run the bot**
+
    ```bash
    pdm run start
    ```
@@ -54,6 +55,7 @@ A Discord bot for the **LUK.GG** gaming community, designed to enhance user expe
 ### Docker Deployment
 
 1. **Build and run with Docker Compose**
+
    ```bash
    docker-compose up -d
    ```
@@ -82,7 +84,7 @@ The bot configuration is managed through `src/_settings.py`:
 
 ### Project Structure
 
-```
+```t
 src/
 ├── bot.py              # Main bot class
 ├── cogs/               # Bot extensions
@@ -210,8 +212,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Gabriel Nobrega**
 
-- Email: gabrieltkdnobrega63@gmail.com
-- GitHub: [@luk-gg](https://github.com/luk-gg)
+- [Email](gabrieltkdnobrega63@gmail.com)
+- [GitHub](https://github.com/biellSilva)
 
 ## 🙏 Acknowledgments
 
