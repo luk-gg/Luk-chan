@@ -30,3 +30,6 @@ class LukEmojis:
 
     bapharia_emblem = PartialEmoji.from_str("<:bapharia_emblem:1421678390938697808>")
     bapharia_emblem2 = PartialEmoji.from_str("<:bapharia_emblem2:1421678407669780594>")
+
+    # Misc
+    wave = PartialEmoji.from_str("👋")
