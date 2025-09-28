@@ -1,5 +1,6 @@
 from discord.ext import commands
 
+from src._emojis import LukEmojis
 from src.components.member_join import MemberJoinView
 
 
@@ -12,7 +13,8 @@ class OwnerCog(commands.Cog):
     @commands.is_owner()
     @commands.command(name="cv2")
     async def test_cv2_view(self, ctx: commands.Context[commands.Bot]) -> None:
-        await ctx.send(view=MemberJoinView(ctx.author))
+        msg = await ctx.send(view=MemberJoinView(ctx.author))
+        await msg.add_reaction(LukEmojis.wave)
 
 
 async def setup(bot: commands.Bot) -> None:
