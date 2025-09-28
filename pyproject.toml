@@ -3,12 +3,12 @@ name = "Luk-chan"
 version = "0.1.0"
 description = "Default template for PDM package"
 authors = [
-    {name = "Gabriel Nobrega", email = "gabrieltkdnobrega63@gmail.com"},
+    { name = "Gabriel Nobrega", email = "gabrieltkdnobrega63@gmail.com" },
 ]
-dependencies = []
+dependencies = ["discord-py>=2.6.3", "pydantic-settings>=2.11.0"]
 requires-python = "==3.13.*"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 
 [tool.pdm]
