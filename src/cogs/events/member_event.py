@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from discord.abc import GuildChannel, PrivateChannel
 
 
-class MemberEvent(commands.Cog):
+class MemberJoinEvent(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
@@ -18,11 +18,12 @@ class MemberEvent(commands.Cog):
 
     @commands.Cog.listener("on_member_join")
     async def send_welcome(self, _: Member) -> None:
-        self._channel = self.bot.get_channel(self._channel_id)
+        if not self._channel:
+            self._channel = self.bot.get_channel(self._channel_id)
 
         if self._channel and isinstance(self._channel, TextChannel):
             await self._channel.send(view=WelcomeLayoutView())
 
 
 async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(MemberEvent(bot))
+    await bot.add_cog(MemberJoinEvent(bot))
