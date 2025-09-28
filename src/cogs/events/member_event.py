@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from discord import Member, TextChannel, Thread
 from discord.ext import commands
 
+from src._channels import LukChannels
 from src.components.welcome import WelcomeLayoutView
 
 if TYPE_CHECKING:
@@ -12,14 +13,12 @@ if TYPE_CHECKING:
 class MemberJoinEvent(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-
-        self._channel_id = 862600196704829443
         self._channel: GuildChannel | PrivateChannel | Thread | None = None
 
     @commands.Cog.listener("on_member_join")
     async def send_welcome(self, _: Member) -> None:
         if not self._channel:
-            self._channel = self.bot.get_channel(self._channel_id)
+            self._channel = self.bot.get_channel(LukChannels.welcome.id)
 
         if self._channel and isinstance(self._channel, TextChannel):
             await self._channel.send(view=WelcomeLayoutView())
