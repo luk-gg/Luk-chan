@@ -4,6 +4,7 @@ from discord import Member, TextChannel, Thread
 from discord.ext import commands
 
 from src._channels import LukChannels
+from src._emojis import LukEmojis
 from src.components.welcome import WelcomeLayoutView
 
 if TYPE_CHECKING:
@@ -21,7 +22,8 @@ class MemberJoinEvent(commands.Cog):
             self._channel = self.bot.get_channel(LukChannels.welcome.id)
 
         if self._channel and isinstance(self._channel, TextChannel):
-            await self._channel.send(view=WelcomeLayoutView())
+            msg = await self._channel.send(view=WelcomeLayoutView())
+            await msg.add_reaction(LukEmojis.wave)
 
 
 async def setup(bot: commands.Bot) -> None:
