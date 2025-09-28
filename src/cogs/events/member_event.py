@@ -5,7 +5,7 @@ from discord.ext import commands
 
 from src._channels import LukChannels
 from src._emojis import LukEmojis
-from src.components.welcome import WelcomeLayoutView
+from src.components.member_join import MemberJoinView
 
 if TYPE_CHECKING:
     from discord.abc import GuildChannel, PrivateChannel
@@ -17,12 +17,12 @@ class MemberJoinEvent(commands.Cog):
         self._channel: GuildChannel | PrivateChannel | Thread | None = None
 
     @commands.Cog.listener("on_member_join")
-    async def send_welcome(self, _: Member) -> None:
+    async def send_welcome(self, member: Member) -> None:
         if not self._channel:
             self._channel = self.bot.get_channel(LukChannels.welcome.id)
 
         if self._channel and isinstance(self._channel, TextChannel):
-            msg = await self._channel.send(view=WelcomeLayoutView())
+            msg = await self._channel.send(view=MemberJoinView(member))
             await msg.add_reaction(LukEmojis.wave)
 
 
