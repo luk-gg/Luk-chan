@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from src.components.welcome import WelcomeLayoutView
+from src.components.member_join import MemberJoinView
 
 
 class OwnerCog(commands.Cog):
@@ -12,7 +12,7 @@ class OwnerCog(commands.Cog):
     @commands.is_owner()
     @commands.command(name="cv2")
     async def test_cv2_view(self, ctx: commands.Context[commands.Bot]) -> None:
-        await ctx.send(view=WelcomeLayoutView())
+        await ctx.send(view=MemberJoinView(ctx.author))
 
 
 async def setup(bot: commands.Bot) -> None:
