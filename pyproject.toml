@@ -17,3 +17,5 @@ distribution = false
 [tool.pdm.scripts]
 start = { cmd = "python main.py", env_file.override = ".env" }
 
+[dependency-groups]
+dev = ["ruff>=0.13.2"]
