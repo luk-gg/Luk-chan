@@ -8,5 +8,7 @@ class _Settings(BaseSettings):
 
     API_URL: str = "https://api.luk.gg"
 
+    GUILD_ID: int = 862600196704829440
+
 
 config = _Settings()  # pyright: ignore[reportCallIssue]
