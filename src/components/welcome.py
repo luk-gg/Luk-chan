@@ -90,5 +90,5 @@ class _Container(ui.Container["WelcomeLayoutView"]):
             *section_3,
             separator,
             *section_4,
-            accent_color=LukColors.welcome_blue,
+            accent_color=LukColors.primary_blue,
         )
