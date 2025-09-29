@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from discord import Member, TextChannel, Thread
+from discord import AllowedMentions, Member, TextChannel, Thread
 from discord.ext import commands
 
 from src._channels import LukChannels
@@ -22,7 +22,10 @@ class MemberJoinEvent(commands.Cog):
             self._channel = self.bot.get_channel(LukChannels.welcome.id)
 
         if self._channel and isinstance(self._channel, TextChannel):
-            msg = await self._channel.send(view=MemberJoinView(member))
+            msg = await self._channel.send(
+                view=MemberJoinView(member),
+                allowed_mentions=AllowedMentions.none(),
+            )
             await msg.add_reaction(LukEmojis.wave)
 
 
