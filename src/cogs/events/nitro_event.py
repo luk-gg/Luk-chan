@@ -4,7 +4,8 @@ from discord import TextChannel
 from discord.ext import commands
 
 from src._channels import LukChannels
-from src.components.welcome import WelcomeLayoutView
+from src._emojis import LukEmojis
+from src.components.member_nitro import MemberNitroView
 
 if TYPE_CHECKING:
     from discord import Member, Thread
@@ -25,7 +26,8 @@ class MemberNitroEvent(commands.Cog):
             self._channel = self.bot.get_channel(LukChannels.welcome.id)
 
         if self._channel and isinstance(self._channel, TextChannel):
-            await self._channel.send(view=WelcomeLayoutView())
+            msg = await self._channel.send(view=MemberNitroView(after))
+            await msg.add_reaction(LukEmojis.lukchan_wow)
 
 
 async def setup(bot: commands.Bot) -> None:
