@@ -18,8 +18,10 @@ class MemberNitroEvent(commands.Cog):
         self._channel: GuildChannel | PrivateChannel | Thread | None = None
 
     @commands.Cog.listener("on_member_update")
-    async def user_boosted_guild(self, _: "Member", after: "Member") -> None:
-        if not after.premium_since:
+    async def user_boosted_guild(self, before: "Member", after: "Member") -> None:
+        if not after.premium_since or not (
+            not before.premium_since and after.premium_since
+        ):
             return
 
         if not self._channel:
