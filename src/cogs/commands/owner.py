@@ -10,8 +10,8 @@ class OwnerCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    @commands.is_owner()
     @commands.command(name="cv2")
+    @commands.is_owner()
     async def test_cv2_view(self, ctx: commands.Context[commands.Bot]) -> None:
         msg = await ctx.send(view=MemberJoinView(ctx.author))
         await msg.add_reaction(LukEmojis.wave)
