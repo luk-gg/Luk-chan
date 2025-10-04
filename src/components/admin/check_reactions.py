@@ -21,7 +21,7 @@ class CheckReactionsView(ui.LayoutView):
         super().__init__(timeout=None)
         self.message = message
         self.role: Role | None = None
-        self.emoji: Emoji | PartialEmoji | None = None
+        self.emoji: Emoji | PartialEmoji | str | None = None
 
         self.add_item(SelectRoleContainer())
         self.add_item(SelectEmojiContainer(message))
@@ -89,9 +89,13 @@ class EmojiSelect(ui.Select["CheckReactionsView"]):
         super().__init__(placeholder="Select an emoji", min_values=1, max_values=1)
 
         self.options = [
-            SelectOption(label=f"{reaction.emoji.name}", value=str(reaction.emoji))
+            SelectOption(
+                label=f":{reaction.emoji.name}:"
+                if isinstance(reaction.emoji, (PartialEmoji, Emoji))
+                else reaction.emoji,
+                value=str(reaction.emoji),
+            )
             for reaction in message.reactions
-            if not isinstance(reaction.emoji, str)
         ][:25]
 
     async def callback(self, interaction: Interaction[Client]) -> None:
@@ -126,7 +130,7 @@ class OutputContainer(ui.Container["CheckReactionsView"]):
     def __init__(
         self,
         role: Role,
-        emoji: Emoji | PartialEmoji,
+        emoji: Emoji | PartialEmoji | str,
         reacted: list[Member],
         not_reacted: list[Member],
     ) -> None:
@@ -208,13 +212,6 @@ class _NotificationMessageView(ui.LayoutView):
             ),
         )
 
-        url_button = ui.Button["_NotificationMessageView"](
-            label="Go to message",
-            style=ButtonStyle.link,
-            url=message_url,
-        )
-
         container = ui.Container["_NotificationMessageView"](message)
-        # container.add_item(url_button)
 
         self.add_item(container)
