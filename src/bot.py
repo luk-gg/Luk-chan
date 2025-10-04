@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from discord import Intents
+from discord import AllowedMentions, Intents
 from discord.ext import commands
 
 from src._logging import setup_logging
@@ -14,7 +14,12 @@ _INTENTS.message_content = True
 
 class LukChan(commands.Bot):
     def __init__(self) -> None:
-        super().__init__(command_prefix="!", intents=_INTENTS, help_command=None)
+        super().__init__(
+            command_prefix="!",
+            intents=_INTENTS,
+            help_command=None,
+            allowed_mentions=AllowedMentions.none(),
+        )
 
     async def on_ready(self) -> None:
         logger = getLogger("luk.client")
