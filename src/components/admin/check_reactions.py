@@ -117,7 +117,6 @@ class EmojiSelect(ui.Select["CheckReactionsView"]):
                 reaction.emoji
                 for reaction in self.view.message.reactions
                 if str(reaction.emoji) == self.values[0]
-                and not isinstance(reaction.emoji, str)
             ),
             None,
         )
