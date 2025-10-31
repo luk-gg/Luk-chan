@@ -55,12 +55,12 @@ class CreateGroupModal(ui.Modal):
     def parse_limit(
         self,
     ) -> tuple[float, float, float, float]:
+        dps, healers, tanks, waitlist = 3, 1, 1, float("inf")
         if not self.limit.value:
-            return 3, 1, 1, float("inf")  # Default values
+            return dps, healers, tanks, waitlist
 
         try:
             parts = self.limit.value.split()
-            dps = healers = tanks = waitlist = float("inf")
             for part in parts:
                 role_part = part.split(":")
                 if len(role_part) != 2:  # noqa: PLR2004
@@ -79,7 +79,7 @@ class CreateGroupModal(ui.Modal):
                 elif role.lower() == "waitlist":
                     waitlist = count_int
         except ValueError:
-            return 3, 1, 1, float("inf")
+            return dps, healers, tanks, waitlist
         else:
             return dps, healers, tanks, waitlist
 
