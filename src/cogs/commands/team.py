@@ -53,4 +53,4 @@ class TeamCog(commands.GroupCog, group_name="team", group_description="Team comm
 
 
 async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(BpsrCog(bot))
+    await bot.add_cog(TeamCog(bot))
