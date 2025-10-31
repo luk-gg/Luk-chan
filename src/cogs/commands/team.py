@@ -7,7 +7,7 @@ from src.components.team.create_group import (
 )
 
 
-class BpsrCog(commands.GroupCog, group_name="team", group_description="Team commands"):
+class TeamCog(commands.GroupCog, group_name="team", group_description="Team commands"):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.bot.add_view(GroupView())
