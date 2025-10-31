@@ -12,7 +12,7 @@ class GroupEmbedController:
     def __init__(
         self,
         name: str,
-        limit: tuple[int, int, int],
+        limit: tuple[float, float, float, float],
         time: datetime,
         desc: str | None = None,
         author: Member | None = None,
@@ -21,7 +21,7 @@ class GroupEmbedController:
         self.time = time
         self.desc = desc
         self.author = author
-        self.dps_limit, self.healer_limit, self.tank_limit = limit
+        self.dps_limit, self.healer_limit, self.tank_limit, self.waitlist_limit = limit
 
         self.dps_members: list[str] = []
         self.healer_members: list[str] = []
@@ -48,20 +48,42 @@ class GroupEmbedController:
                 icon_url=self.author.display_avatar.url,
             )
 
-        embed.add_field(
-            name=f"DPS ({len(self.dps_members)}/{self.dps_limit})",
-            value="\u200b",
+        dps_limit = (
+            int(self.dps_limit) if self.dps_limit != float("inf") else self.dps_limit
         )
         embed.add_field(
-            name=f"Healer ({len(self.healer_members)}/{self.healer_limit})",
-            value="\u200b",
-        )
-        embed.add_field(
-            name=f"Tank ({len(self.tank_members)}/{self.tank_limit})",
+            name=f"DPS ({len(self.dps_members)}/{dps_limit})",
             value="\u200b",
         )
 
-        embed.add_field(name="Waiting", value="\u200b", inline=False)
+        healer_limit = (
+            int(self.healer_limit)
+            if self.healer_limit != float("inf")
+            else self.healer_limit
+        )
+        embed.add_field(
+            name=f"Healer ({len(self.healer_members)}/{healer_limit})",
+            value="\u200b",
+        )
+
+        tank_limit = (
+            int(self.tank_limit) if self.tank_limit != float("inf") else self.tank_limit
+        )
+        embed.add_field(
+            name=f"Tank ({len(self.tank_members)}/{tank_limit})",
+            value="\u200b",
+        )
+
+        waitlist_limit = (
+            int(self.waitlist_limit)
+            if self.waitlist_limit != float("inf")
+            else self.waitlist_limit
+        )
+        embed.add_field(
+            name=f"Waiting ({len(self.waiting_members)}/{waitlist_limit})",
+            value="\u200b",
+            inline=False,
+        )
 
         return embed
 
@@ -90,13 +112,16 @@ class GroupEmbedController:
         tank_field = embed.fields[2]
         waiting_field = embed.fields[3]
 
-        dps_limit = int(dps_field.name.rsplit("/", 1)[1].rstrip(")"))  # pyright: ignore[reportOptionalMemberAccess]
-        healer_limit = int(healer_field.name.rsplit("/", 1)[1].rstrip(")"))  # pyright: ignore[reportOptionalMemberAccess]
-        tank_limit = int(tank_field.name.rsplit("/", 1)[1].rstrip(")"))  # pyright: ignore[reportOptionalMemberAccess]
+        dps_limit = float(dps_field.name.rsplit("/", 1)[1].rstrip(")"))  # pyright: ignore[reportOptionalMemberAccess]
+        healer_limit = float(healer_field.name.rsplit("/", 1)[1].rstrip(")"))  # pyright: ignore[reportOptionalMemberAccess]
+        tank_limit = float(tank_field.name.rsplit("/", 1)[1].rstrip(")"))  # pyright: ignore[reportOptionalMemberAccess]
+        waitlist_limit = float(
+            str(waiting_field.name).rsplit("/", 1)[1].rstrip(")"),
+        )
 
         controller = GroupEmbedController(
             name=title,
-            limit=(dps_limit, healer_limit, tank_limit),
+            limit=(dps_limit, healer_limit, tank_limit, waitlist_limit),
             time=time,
             desc=desc,
         )
@@ -132,11 +157,11 @@ class GroupEmbedController:
     async def button_clicked(self, button_id: str, member: Member | User) -> None:
         mention = member.mention
 
-        params: list[tuple[list[str], float, str]] = [
+        params: list[tuple[list[str], float | None, str]] = [
             (self.dps_members, self.dps_limit, "dps"),
             (self.healer_members, self.healer_limit, "healer"),
             (self.tank_members, self.tank_limit, "tank"),
-            (self.waiting_members, float("inf"), "waiting"),
+            (self.waiting_members, self.waitlist_limit, "waiting"),
         ]
 
         for lst, _, btn_id in params:
@@ -150,29 +175,50 @@ class GroupEmbedController:
                 return
 
         for lst, limit, btn_id in params:
-            if btn_id == button_id and len(lst) < limit and mention not in lst:
+            if btn_id == button_id and mention not in lst:
+                if limit is not None and len(lst) >= limit:
+                    return
                 lst.append(mention)
                 self.update_embed()
                 return
 
     def update_embed(self) -> None:
+        dps_limit = (
+            int(self.dps_limit) if self.dps_limit != float("inf") else self.dps_limit
+        )
         self.embed.set_field_at(
             0,
-            name=f"DPS ({len(self.dps_members)}/{self.dps_limit})",
+            name=f"DPS ({len(self.dps_members)}/{dps_limit})",
             value="\n".join(self.dps_members) if self.dps_members else "\u200b",
+        )
+
+        healer_limit = (
+            int(self.healer_limit)
+            if self.healer_limit != float("inf")
+            else self.healer_limit
         )
         self.embed.set_field_at(
             1,
-            name=f"Healer ({len(self.healer_members)}/{self.healer_limit})",
+            name=f"Healer ({len(self.healer_members)}/{healer_limit})",
             value="\n".join(self.healer_members) if self.healer_members else "\u200b",
+        )
+
+        tank_limit = (
+            int(self.tank_limit) if self.tank_limit != float("inf") else self.tank_limit
         )
         self.embed.set_field_at(
             2,
-            name=f"Tank ({len(self.tank_members)}/{self.tank_limit})",
+            name=f"Tank ({len(self.tank_members)}/{tank_limit})",
             value="\n".join(self.tank_members) if self.tank_members else "\u200b",
+        )
+
+        waitlist_limit = (
+            int(self.waitlist_limit)
+            if self.waitlist_limit != float("inf")
+            else self.waitlist_limit
         )
         self.embed.set_field_at(
             3,
-            name="Waiting",
+            name=f"Waiting ({len(self.waiting_members)}/{waitlist_limit})",
             value="\n".join(self.waiting_members) if self.waiting_members else "\u200b",
         )

@@ -4,13 +4,13 @@ from dateutil.parser import parse
 from discord import Interaction, Member, TextStyle, ui
 
 from src._utils import TIMEZONES, datetime_now
-from src.embeds.bpsr.group_controller import GroupEmbedController
+from src.embeds.team.group_controller import GroupEmbedController
 
 
 class CreateGroupModal(ui.Modal):
     def __init__(self) -> None:
         super().__init__(
-            title="Create BPSR Group",
+            title="Create a Team",
             timeout=300,
         )
 
@@ -39,9 +39,12 @@ class CreateGroupModal(ui.Modal):
         self.limit = ui.TextInput["CreateGroupModal"](
             label="Member Limit",
             style=TextStyle.short,
-            placeholder="e.g., '3 1 1' for 3 DPS, 1 Healer, 1 Tank",
+            placeholder=(
+                "e.g., 'DPS:3 Healer:1 Tank:1 Waitlist:2' "
+                "for 3 DPS, 1 Healer, 1 Tank, 2 Waitlist"
+            ),
             required=False,
-            default="3 1 1",
+            default="DPS:3 Healer:1 Tank:1 Waitlist",
         )
 
         self.add_item(self.group_name)
@@ -49,16 +52,36 @@ class CreateGroupModal(ui.Modal):
         self.add_item(self.time)
         self.add_item(self.limit)
 
-    def parse_limit(self) -> tuple[int, int, int]:
+    def parse_limit(
+        self,
+    ) -> tuple[float, float, float, float]:
         if not self.limit.value:
-            return 3, 1, 1  # Default values
+            return 3, 1, 1, float("inf")  # Default values
 
         try:
-            dps, healers, tanks = map(int, self.limit.value.split())
+            parts = self.limit.value.split()
+            dps = healers = tanks = waitlist = float("inf")
+            for part in parts:
+                role_part = part.split(":")
+                if len(role_part) != 2:  # noqa: PLR2004
+                    role = role_part[0]
+                    count = float("inf")
+                else:
+                    role, count = role_part
+
+                count_int = float(count)
+                if role.lower() == "dps":
+                    dps = count_int
+                elif role.lower() == "healer":
+                    healers = count_int
+                elif role.lower() == "tank":
+                    tanks = count_int
+                elif role.lower() == "waitlist":
+                    waitlist = count_int
         except ValueError:
-            return 3, 1, 1  # Fallback to default on error
+            return 3, 1, 1, float("inf")
         else:
-            return dps, healers, tanks
+            return dps, healers, tanks, waitlist
 
     async def on_submit(self, interaction: Interaction) -> None:
         group_name = self.group_name.value

@@ -1,28 +1,26 @@
 from discord import Interaction, Message, app_commands
 from discord.ext import commands
 
-from src.components.bpsr.create_group import (
+from src.components.team.create_group import (
     CreateGroupModal,
     GroupView,
 )
 
 
-class BpsrCog(commands.GroupCog, group_name="bpsr", group_description="BPSR commands"):
+class BpsrCog(commands.GroupCog, group_name="team", group_description="Team commands"):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.bot.add_view(GroupView())
 
         self.check_role_ctx = app_commands.ContextMenu(
-            name="List BPSR Group",
+            name="Team list",
             callback=self.message_list_group,
         )
         self.bot.tree.add_command(self.check_role_ctx)
 
-    group_commands = app_commands.Group(name="group", description="BPSR group commands")
-
     @app_commands.guild_only()
     @app_commands.default_permissions(administrator=True)
-    @group_commands.command(name="create", description="Create a BPSR group")
+    @app_commands.command(name="create", description="Creates a team")
     async def create_bpsr_group(self, interaction: Interaction) -> None:
         await interaction.response.send_modal(CreateGroupModal())
 
