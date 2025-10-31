@@ -170,8 +170,14 @@ class GroupEmbedController:
 
         return controller
 
-    async def button_clicked(self, button_id: str, member: Member | User) -> None:
+    async def button_clicked(
+        self,
+        button_id: str,
+        member: Member | User,
+    ) -> tuple[str | None, str | None]:
         mention = member.mention
+        joined: str | None = None
+        left: str | None = None
 
         params: list[tuple[list[str], float | None, str]] = [
             (self.dps_members, self.dps_limit, "dps"),
@@ -181,15 +187,28 @@ class GroupEmbedController:
         ]
 
         for lst, limit, btn_id in params:
-            if btn_id == button_id and mention not in lst:
-                if limit is not None and len(lst) >= limit:
-                    return
-                lst.append(mention)
+            # Check if trying to join a full role
+            if (
+                btn_id == button_id
+                and mention not in lst
+                and limit is not None
+                and len(lst) >= limit
+            ):
+                return None, None
 
-            elif btn_id != button_id and mention in lst:
+        for lst, _, btn_id in params:
+            if (btn_id != button_id and mention in lst) or (
+                btn_id == button_id and mention in lst
+            ):
                 lst.remove(mention)
+                left = btn_id
+
+            elif btn_id == button_id and mention not in lst:
+                lst.append(mention)
+                joined = btn_id
 
         self.update_embed()
+        return joined, left
 
     def update_embed(self) -> None:
         dps_limit = int(self.dps_limit) if self.dps_limit != float("inf") else None

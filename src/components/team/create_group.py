@@ -136,7 +136,17 @@ class GroupView(ui.View):
             interaction.message.embeds[0],
         )
 
-        await embed_controller.button_clicked(button.custom_id, interaction.user)  # pyright: ignore[reportArgumentType]
+        joined, left = await embed_controller.button_clicked(
+            button.custom_id,  # pyright: ignore[reportArgumentType]
+            interaction.user,
+        )
+
+        if not joined and not left:
+            await interaction.followup.send(
+                content="The selected role is full. Please choose a different role.",
+                ephemeral=True,
+            )
+            return
 
         await interaction.edit_original_response(
             embeds=[
@@ -144,12 +154,20 @@ class GroupView(ui.View):
             ],
         )
 
-        group_name = (
-            str(button.custom_id).title() if str(button.custom_id) != "dps" else "DPS"
-        )
+        def group_name(value: str) -> str:
+            return value.title() if value != "dps" else "DPS"
+
+        msg = ""
+
+        if joined:
+            msg += f"joined {group_name(joined)}"
+        if left:
+            if msg:
+                msg += " and "
+            msg += f"left {group_name(left)}"
 
         await interaction.followup.send(
-            content=f"You have joined {group_name}.",
+            content=f"You have {msg}.",
             ephemeral=True,
         )
 
