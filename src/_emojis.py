@@ -31,5 +31,20 @@ class LukEmojis:
     bapharia_emblem = PartialEmoji.from_str("<:bapharia_emblem:1421678390938697808>")
     bapharia_emblem2 = PartialEmoji.from_str("<:bapharia_emblem2:1421678407669780594>")
 
+    # Classes
+    # DPS
+    sb = PartialEmoji.from_str("<:sb:1433580128390349012>")
+    fm = PartialEmoji.from_str("<:fm:1433580136669647021>")
+    wk = PartialEmoji.from_str("<:wk:1433580123998781653>")
+    mm = PartialEmoji.from_str("<:mm:1433580132546773022>")
+
+    # Healer
+    vo = PartialEmoji.from_str("<:vo:1433580126339072000>")
+    bp = PartialEmoji.from_str("<:bp:1433580138775449610>")
+
+    # Tank
+    sk = PartialEmoji.from_str("<:sk:1433580130520797345>")
+    hg = PartialEmoji.from_str("<:hg:1433580134543261819>")
+
     # Misc
     wave = PartialEmoji.from_str("👋")
