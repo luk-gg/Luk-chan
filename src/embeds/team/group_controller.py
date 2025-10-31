@@ -180,23 +180,16 @@ class GroupEmbedController:
             (self.waiting_members, self.waitlist_limit, "waiting"),
         ]
 
-        for lst, _, btn_id in params:
-            if mention in lst and btn_id == button_id:
-                lst.remove(mention)
-                self.update_embed()
-                return
-
-            if mention in lst and btn_id != button_id:
-                self.update_embed()
-                return
-
         for lst, limit, btn_id in params:
             if btn_id == button_id and mention not in lst:
                 if limit is not None and len(lst) >= limit:
                     return
                 lst.append(mention)
-                self.update_embed()
-                return
+
+            elif btn_id != button_id and mention in lst:
+                lst.remove(mention)
+
+        self.update_embed()
 
     def update_embed(self) -> None:
         dps_limit = int(self.dps_limit) if self.dps_limit != float("inf") else None

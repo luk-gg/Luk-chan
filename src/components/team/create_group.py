@@ -144,6 +144,15 @@ class GroupView(ui.View):
             ],
         )
 
+        group_name = (
+            str(button.custom_id).title() if str(button.custom_id) != "dps" else "DPS"
+        )
+
+        await interaction.followup.send(
+            content=f"You have joined {group_name}.",
+            ephemeral=True,
+        )
+
 
 class _BaseButton(ui.Button["GroupView"]):
     def __init__(self, label: str, custom_id: str) -> None:
