@@ -49,7 +49,7 @@ class TeamCog(commands.GroupCog, group_name="team", group_description="Team comm
             if member_list and member_list != ["\u200b"]
         )
 
-        await interaction.edit_original_response(content=response)
+        await interaction.edit_original_response(content=f"```\n{response}\n```")
 
 
 async def setup(bot: commands.Bot) -> None:
