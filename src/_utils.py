@@ -16,6 +16,7 @@ TIMEZONES = {
     "CST": ZoneInfo("America/Chicago"),  # Central Standard Time (UTC-6)
     "MST": ZoneInfo("America/Denver"),  # Mountain Standard Time (UTC-7)
     "PST": ZoneInfo("America/Los_Angeles"),  # Pacific Standard Time (UTC-8)
+    "PDT": ZoneInfo("America/Los_Angeles"),  # Pacific Standard Time (UTC-8)
     "AKST": ZoneInfo("America/Anchorage"),  # Alaska (UTC-9)
     "HST": ZoneInfo("Pacific/Honolulu"),  # Hawaii (UTC-10)
     # Europa
