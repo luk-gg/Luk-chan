@@ -10,7 +10,7 @@ class MemberJoinView(ui.LayoutView):
         super().__init__()
 
         header = ui.TextDisplay["MemberJoinView"](
-            content=f"### Welcome {user.mention}!",
+            content=f"### Welcome {user.name}!",
         )
 
         text = ui.TextDisplay["MemberJoinView"](
