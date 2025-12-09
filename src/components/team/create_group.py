@@ -5,13 +5,16 @@ from dateutil.parser import parse
 from discord import (
     ButtonStyle,
     Interaction,
+    Member,
     Message,
     PartialEmoji,
     SelectOption,
     TextChannel,
     TextStyle,
+    User,
     ui,
 )
+from discord.utils import format_dt
 
 from src._constants import PRESETS, TeamPreset
 from src._emojis import LukEmojis
@@ -170,7 +173,7 @@ class _ConfirmGroupCreateView(ui.View):
 
         msg = await channel.send(embed=self.controller.embed, view=GroupView())
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             content=f"Group creation confirmed! {msg.jump_url}",
             ephemeral=True,
         )
@@ -234,7 +237,11 @@ class GroupView(ui.View):
         await interaction.edit_original_response(embed=controller.embed)
 
         await interaction.followup.send(
-            content="You have left the group.",
+            content=(
+                f"You have left {controller.data.owner.name}'s "
+                f'group "{controller.data.name}" at '
+                f"{format_dt(controller.data.time, 'F')}."
+            ),
             ephemeral=True,
         )
 
@@ -301,11 +308,55 @@ _role_mapping: dict[str, _RoleMapping] = {
     },
 }
 
+_role_map = {
+    "dps": "Damage",
+    "healer": "Support",
+    "tank": "Tank",
+}
+
 
 class JoinGroupView(ui.View):
     def __init__(self, message: Message) -> None:
         super().__init__(timeout=300)
         self.message = message
+
+    def get_response_message(
+        self,
+        controller: GroupEmbedController,
+        member: Member | User,
+    ) -> str:
+        user = controller.find_member(member)
+        if user:
+            user_role = user.role.split(":")[1]
+            airona = (
+                ""
+                if (user.airona is None)
+                else (
+                    f"Airona A{
+                        IMAGINE_EMOJIS['airona'][user.airona].name.rsplit('A', 1)[1]
+                    }"
+                )
+            )
+
+            tina = (
+                ""
+                if (user.tina is None)
+                else (
+                    f"Tina A{IMAGINE_EMOJIS['tina'][user.tina].name.rsplit('A', 1)[1]}"
+                )
+            )
+
+            return (
+                f"You have joined {controller.data.owner.name}'s group "
+                f'"{controller.data.name}" at {format_dt(controller.data.time, "F")} '
+                f"as {_role_mapping[user_role]['name']}{
+                    ('' if not user.airona and not user.tina else ' with ')
+                }"
+                f"{airona}{(' and ' if airona and tina else '')}{tina}."
+                f"{' You are also helping!' if user.help else ''}"
+            )
+
+        return "Missing user in group data."
 
     @ui.select(
         placeholder="Select your role to join the group",
@@ -343,10 +394,7 @@ class JoinGroupView(ui.View):
         self.message.embeds[0] = controller.embed
 
         await interaction.edit_original_response(
-            content=(
-                f"You have joined the group {selected_role['role']} "
-                f"as a {selected_role['name']}."
-            ),
+            content=self.get_response_message(controller, interaction.user),
         )
 
     @ui.select(
@@ -392,15 +440,7 @@ class JoinGroupView(ui.View):
         self.message.embeds[0] = controller.embed
 
         await interaction.edit_original_response(
-            content=(
-                "You have set your imagines to "
-                + ", ".join(
-                    f"{name.title()} A{index}"
-                    for name, index in (("tina", tina), ("airona", airona))
-                    if index is not None
-                )
-                + "."
-            ),
+            content=self.get_response_message(controller, interaction.user),
         )
 
     @ui.button(
@@ -420,13 +460,11 @@ class JoinGroupView(ui.View):
             self.message.embeds[0],
             message_id=self.message.id,
         )
-        helping = controller.toggle_help(member=interaction.user)
+        controller.toggle_help(member=interaction.user)
 
         await self.message.edit(embed=controller.embed)
         self.message.embeds[0] = controller.embed
 
         await interaction.edit_original_response(
-            content=(
-                "You have toggled your help status to " + ("ON." if helping else "OFF.")
-            ),
+            content=self.get_response_message(controller, interaction.user),
         )

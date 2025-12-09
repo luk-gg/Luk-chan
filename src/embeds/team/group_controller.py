@@ -75,7 +75,7 @@ class GroupEmbedController:
         tank_limit: float,
         owner: Member | User | _GroupOwner,
     ) -> None:
-        self._data: _GroupData = _GroupData(
+        self.data: _GroupData = _GroupData(
             name=name,
             time=time,
             desc=desc,
@@ -101,58 +101,56 @@ class GroupEmbedController:
 
     def _create_embed(self) -> Embed:
         embed = Embed(
-            title=self._data.name,
+            title=self.data.name,
             description=(
-                f"**Time:** {format_dt(self._data.time, 'f')} "
-                f"({format_dt(self._data.time, 'R')})\n\n"
+                f"**Time:** {format_dt(self.data.time, 'f')} "
+                f"({format_dt(self.data.time, 'R')})\n\n"
             ),
             colour=LukColors.primary_blue,
         )
 
-        if self._data.desc and embed.description:
-            embed.description += self._data.desc
+        if self.data.desc and embed.description:
+            embed.description += self.data.desc
 
         dps_limit = (
-            int(self._data.dps_limit) if self._data.dps_limit != float("inf") else None
+            int(self.data.dps_limit) if self.data.dps_limit != float("inf") else None
         )
         embed.add_field(
             name=(
-                f"{LukEmojis.dps} Damage ({len(self._data.dps_members)}"
+                f"{LukEmojis.dps} Damage ({len(self.data.dps_members)}"
                 f"{f'/{dps_limit}' if dps_limit is not None else ''})"
             ),
-            value=self.update_members(self._data.dps_members, limit=dps_limit),
+            value=self.update_members(self.data.dps_members, limit=dps_limit),
         )
 
         healer_limit = (
-            int(self._data.healer_limit)
-            if self._data.healer_limit != float("inf")
+            int(self.data.healer_limit)
+            if self.data.healer_limit != float("inf")
             else None
         )
         embed.add_field(
             name=(
-                f"{LukEmojis.sup} Support ({len(self._data.healer_members)}"
+                f"{LukEmojis.sup} Support ({len(self.data.healer_members)}"
                 f"{f'/{healer_limit}' if healer_limit is not None else ''})"
             ),
-            value=self.update_members(self._data.healer_members, limit=healer_limit),
+            value=self.update_members(self.data.healer_members, limit=healer_limit),
         )
 
         tank_limit = (
-            int(self._data.tank_limit)
-            if self._data.tank_limit != float("inf")
-            else None
+            int(self.data.tank_limit) if self.data.tank_limit != float("inf") else None
         )
         embed.add_field(
             name=(
-                f"{LukEmojis.tank} Tank ({len(self._data.tank_members)}"
+                f"{LukEmojis.tank} Tank ({len(self.data.tank_members)}"
                 f"{f'/{tank_limit}' if tank_limit is not None else ''})"
             ),
-            value=self.update_members(self._data.tank_members, limit=tank_limit),
+            value=self.update_members(self.data.tank_members, limit=tank_limit),
         )
 
         embed.set_author(
-            name=self._data.owner.name,
-            icon_url=self._data.owner.icon_url,
-            url=f"https://luk.gg/bpsr?data={self._data.model_dump_json()}",
+            name=self.data.owner.name,
+            icon_url=self.data.owner.icon_url,
+            url=f"https://luk.gg/bpsr?data={self.data.model_dump_json()}",
         )
 
         return embed
@@ -202,7 +200,7 @@ class GroupEmbedController:
                 icon_url=_data.owner.icon_url,
             ),
         )
-        controller._data = _data
+        controller.data = _data
 
         _INTERNAL_CACHE[message_id] = controller
 
@@ -217,19 +215,19 @@ class GroupEmbedController:
         user_data.role = str(emoji)
 
         if role == "dps":
-            self._data.dps_members.append(user_data)
+            self.data.dps_members.append(user_data)
         elif role == "healer":
-            self._data.healer_members.append(user_data)
+            self.data.healer_members.append(user_data)
         elif role == "tank":
-            self._data.tank_members.append(user_data)
+            self.data.tank_members.append(user_data)
 
         self._embed = None
 
     def pop_member(self, member: Member | User) -> _GroupUser | None:
         for user_list in [
-            self._data.dps_members,
-            self._data.healer_members,
-            self._data.tank_members,
+            self.data.dps_members,
+            self.data.healer_members,
+            self.data.tank_members,
         ]:
             for index, user in enumerate(user_list):
                 if user.id == member.id:
@@ -237,11 +235,22 @@ class GroupEmbedController:
                     return user.model_copy(deep=True)
         return None
 
+    def find_member(self, member: Member | User) -> _GroupUser | None:
+        for user_list in [
+            self.data.dps_members,
+            self.data.healer_members,
+            self.data.tank_members,
+        ]:
+            for user in user_list:
+                if user.id == member.id:
+                    return user
+        return None
+
     def remove_member(self, member: Member | User) -> None:
         for user_list in [
-            self._data.dps_members,
-            self._data.healer_members,
-            self._data.tank_members,
+            self.data.dps_members,
+            self.data.healer_members,
+            self.data.tank_members,
         ]:
             for index, user in enumerate(user_list):
                 if user.id == member.id:
@@ -251,7 +260,7 @@ class GroupEmbedController:
 
     def toggle_help(self, member: Member | User) -> bool | None:
         for user in (
-            self._data.dps_members + self._data.healer_members + self._data.tank_members
+            self.data.dps_members + self.data.healer_members + self.data.tank_members
         ):
             if user.id == member.id:
                 user.help = not user.help
@@ -266,9 +275,9 @@ class GroupEmbedController:
         tina: int | None = None,
     ) -> None:
         for users_list in [
-            self._data.dps_members,
-            self._data.healer_members,
-            self._data.tank_members,
+            self.data.dps_members,
+            self.data.healer_members,
+            self.data.tank_members,
         ]:
             for user in users_list:
                 if user.id == member.id:
