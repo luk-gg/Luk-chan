@@ -8,12 +8,14 @@ from discord import (
     Message,
     PartialEmoji,
     SelectOption,
+    TextChannel,
     TextStyle,
     ui,
 )
 
 from src._constants import PRESETS, TeamPreset
 from src._emojis import LukEmojis
+from src._settings import config
 from src._utils import TIMEZONES, datetime_now
 from src.embeds.team.group_controller import IMAGINE_EMOJIS, GroupEmbedController
 
@@ -148,11 +150,30 @@ class _ConfirmGroupCreateView(ui.View):
         interaction: Interaction,
         _: ui.Button["_ConfirmGroupCreateView"],
     ) -> None:
+        await interaction.response.defer()
+
+        if not interaction.guild:
+            await interaction.followup.send(
+                content="Error: This interaction must be used in a guild.",
+                ephemeral=True,
+            )
+            return
+
+        channel = interaction.guild.get_channel(config.BPSR_GROUP_CHANNEL_ID)
+
+        if not channel or not isinstance(channel, (TextChannel)):
+            await interaction.followup.send(
+                content="Error: Could not find the designated group channel.",
+                ephemeral=True,
+            )
+            return
+
+        msg = await channel.send(embed=self.controller.embed, view=GroupView())
+
         await interaction.response.send_message(
-            content="Group creation confirmed!",
+            content=f"Group creation confirmed! {msg.jump_url}",
             ephemeral=True,
         )
-        await interaction.followup.send(embed=self.controller.embed, view=GroupView())
 
 
 class GroupView(ui.View):
