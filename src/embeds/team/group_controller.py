@@ -1,95 +1,96 @@
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
-import regex
-from discord import Embed, Member, User
+from cachetools import TTLCache
+from discord import Embed, Member, PartialEmoji, User
 from discord.utils import format_dt
+from pydantic import BaseModel
 
 from src._colors import LukColors
+from src._emojis import LukEmojis
+
+_INTERNAL_CACHE: TTLCache[int, "GroupEmbedController"] = TTLCache(
+    maxsize=1024,
+    ttl=60 * 60 * 3,
+)
+
+
+class _GroupUser(BaseModel):
+    id: int
+    role: str
+    help: bool = False
+    airona: int | None = None
+    tina: int | None = None
+
+
+class _GroupOwner(BaseModel):
+    id: int
+    name: str
+    icon_url: str
+
+
+class _GroupData(BaseModel):
+    name: str
+    time: datetime
+    desc: str | None
+
+    dps_limit: float
+    healer_limit: float
+    tank_limit: float
+
+    dps_members: list[_GroupUser] = []
+    healer_members: list[_GroupUser] = []
+    tank_members: list[_GroupUser] = []
+
+    owner: _GroupOwner
+
+
+IMAGINE_EMOJIS = {
+    "airona": [
+        LukEmojis.airona,
+        LukEmojis.airona_angry,
+        LukEmojis.airona3,
+        LukEmojis.airona_grin,
+        LukEmojis.airona_laugh,
+        LukEmojis.airona_wauw,
+    ],
+    "tina": [
+        LukEmojis.tina,
+        LukEmojis.tina_smile,
+        LukEmojis.tina_wink,
+        LukEmojis.tina_grin,
+        LukEmojis.tina_laugh,
+        LukEmojis.tina_wauw,
+    ],
+}
 
 
 class GroupEmbedController:
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         name: str,
-        limit: tuple[float, float, float, float],
         time: datetime,
-        desc: str | None = None,
-        author: Member | None = None,
+        desc: str | None,
+        dps_limit: float,
+        healer_limit: float,
+        tank_limit: float,
+        owner: Member | User | _GroupOwner,
     ) -> None:
-        self.name = name
-        self.time = time
-        self.desc = desc
-        self.author = author
-        self.dps_limit, self.healer_limit, self.tank_limit, self.waitlist_limit = limit
-
-        self.dps_members: list[str] = []
-        self.healer_members: list[str] = []
-        self.tank_members: list[str] = []
-        self.waiting_members: list[str] = []
-
+        self._data: _GroupData = _GroupData(
+            name=name,
+            time=time,
+            desc=desc,
+            dps_limit=dps_limit,
+            healer_limit=healer_limit,
+            tank_limit=tank_limit,
+            owner=_GroupOwner(
+                id=owner.id,
+                name=owner.name,
+                icon_url=owner.display_avatar.url
+                if isinstance(owner, (Member, User))
+                else owner.icon_url,
+            ),
+        )
         self._embed: Embed | None = None
-
-    def _create_embed(self) -> Embed:
-        embed = Embed(
-            title=self.name,
-            description=(
-                f"**Time:** {format_dt(self.time, 'f')} ({format_dt(self.time, 'R')})\n"
-            ),
-            colour=LukColors.primary_blue,
-        )
-
-        if self.desc and embed.description:
-            embed.description += self.desc
-
-        if self.author:
-            embed.set_author(
-                name=self.author.name,
-                icon_url=self.author.display_avatar.url,
-            )
-
-        dps_limit = int(self.dps_limit) if self.dps_limit != float("inf") else None
-        embed.add_field(
-            name=(
-                f"DPS ({len(self.dps_members)}"
-                f"{f'/{dps_limit}' if dps_limit is not None else ''})"
-            ),
-            value="\u200b",
-        )
-
-        healer_limit = (
-            int(self.healer_limit) if self.healer_limit != float("inf") else None
-        )
-        embed.add_field(
-            name=(
-                f"Healer ({len(self.healer_members)}"
-                f"{f'/{healer_limit}' if healer_limit is not None else ''})"
-            ),
-            value="\u200b",
-        )
-
-        tank_limit = int(self.tank_limit) if self.tank_limit != float("inf") else None
-        embed.add_field(
-            name=(
-                f"Tank ({len(self.tank_members)}"
-                f"{f'/{tank_limit}' if tank_limit is not None else ''})"
-            ),
-            value="\u200b",
-        )
-
-        waitlist_limit = (
-            int(self.waitlist_limit) if self.waitlist_limit != float("inf") else None
-        )
-        embed.add_field(
-            name=(
-                f"Waiting ({len(self.waiting_members)}"
-                f"{f'/{waitlist_limit}' if waitlist_limit is not None else ''})"
-            ),
-            value="\u200b",
-            inline=False,
-        )
-
-        return embed
 
     @property
     def embed(self) -> Embed:
@@ -98,159 +99,180 @@ class GroupEmbedController:
 
         return self._embed
 
-    @staticmethod
-    async def from_message(embed: Embed) -> "GroupEmbedController":
-        title = embed.title or "Unnamed Group"
-        description_lines = embed.description.split("\n") if embed.description else []
-        time_line = description_lines[0] if description_lines else ""
-        desc = "\n".join(description_lines[1:]) if len(description_lines) > 1 else None
-
-        time_str = regex.search(r"<t:(\d+):R>", time_line)
-        if not time_str:
-            raise ValueError("Could not find time in embed description.")
-
-        time = datetime.fromtimestamp(int(time_str.group(1)), tz=ZoneInfo("UTC"))
-
-        dps_field = embed.fields[0]
-        healer_field = embed.fields[1]
-        tank_field = embed.fields[2]
-        waiting_field = embed.fields[3]
-
-        dps_limit = float("inf")
-        healer_limit = float("inf")
-        tank_limit = float("inf")
-        waitlist_limit = float("inf")
-
-        if "/" in dps_field.name:  # pyright: ignore[reportOperatorIssue]
-            dps_limit = float(dps_field.name.rsplit("/", 1)[1].rstrip(")"))  # pyright: ignore[reportOptionalMemberAccess]
-
-        if "/" in healer_field.name:  # pyright: ignore[reportOperatorIssue]
-            healer_limit = float(healer_field.name.rsplit("/", 1)[1].rstrip(")"))  # pyright: ignore[reportOptionalMemberAccess]
-
-        if "/" in tank_field.name:  # pyright: ignore[reportOperatorIssue]
-            tank_limit = float(tank_field.name.rsplit("/", 1)[1].rstrip(")"))  # pyright: ignore[reportOptionalMemberAccess]
-
-        if "/" in waiting_field.name:  # pyright: ignore[reportOperatorIssue]
-            waitlist_limit = float(
-                str(waiting_field.name).rsplit("/", 1)[1].rstrip(")"),
-            )
-
-        controller = GroupEmbedController(
-            name=title,
-            limit=(dps_limit, healer_limit, tank_limit, waitlist_limit),
-            time=time,
-            desc=desc,
+    def _create_embed(self) -> Embed:
+        embed = Embed(
+            title=self._data.name,
+            description=(
+                f"**Time:** {format_dt(self._data.time, 'f')} "
+                f"({format_dt(self._data.time, 'R')})\n\n"
+            ),
+            colour=LukColors.primary_blue,
         )
 
-        controller._create_embed()
+        if self._data.desc and embed.description:
+            embed.description += self._data.desc
 
-        controller.dps_members = [
-            mention
-            for mention in dps_field.value.splitlines()  # pyright: ignore[reportOptionalMemberAccess]
-            if mention.strip() and mention != "\u200b"
-        ]
-
-        controller.healer_members = [
-            mention
-            for mention in healer_field.value.splitlines()  # pyright: ignore[reportOptionalMemberAccess]
-            if mention.strip() and mention != "\u200b"
-        ]
-
-        controller.tank_members = [
-            mention
-            for mention in tank_field.value.splitlines()  # pyright: ignore[reportOptionalMemberAccess]
-            if mention.strip() and mention != "\u200b"
-        ]
-
-        controller.waiting_members = [
-            mention
-            for mention in waiting_field.value.splitlines()  # pyright: ignore[reportOptionalMemberAccess]
-            if mention.strip() and mention != "\u200b"
-        ]
-
-        return controller
-
-    async def button_clicked(
-        self,
-        button_id: str,
-        member: Member | User,
-    ) -> tuple[str | None, str | None]:
-        mention = member.mention
-        joined: str | None = None
-        left: str | None = None
-
-        params: list[tuple[list[str], float | None, str]] = [
-            (self.dps_members, self.dps_limit, "dps"),
-            (self.healer_members, self.healer_limit, "healer"),
-            (self.tank_members, self.tank_limit, "tank"),
-            (self.waiting_members, self.waitlist_limit, "waiting"),
-        ]
-
-        for lst, limit, btn_id in params:
-            # Check if trying to join a full role
-            if (
-                btn_id == button_id
-                and mention not in lst
-                and limit is not None
-                and len(lst) >= limit
-            ):
-                return None, None
-
-        for lst, _, btn_id in params:
-            if (btn_id != button_id and mention in lst) or (
-                btn_id == button_id and mention in lst
-            ):
-                lst.remove(mention)
-                left = btn_id
-
-            elif btn_id == button_id and mention not in lst:
-                lst.append(mention)
-                joined = btn_id
-
-        self.update_embed()
-        return joined, left
-
-    def update_embed(self) -> None:
-        dps_limit = int(self.dps_limit) if self.dps_limit != float("inf") else None
-        self.embed.set_field_at(
-            0,
+        dps_limit = (
+            int(self._data.dps_limit) if self._data.dps_limit != float("inf") else None
+        )
+        embed.add_field(
             name=(
-                f"DPS ({len(self.dps_members)}"
+                f"{LukEmojis.dps} Damage ({len(self._data.dps_members)}"
                 f"{f'/{dps_limit}' if dps_limit is not None else ''})"
             ),
-            value="\n".join(self.dps_members) if self.dps_members else "\u200b",
+            value=self.update_members(self._data.dps_members, limit=dps_limit),
         )
 
         healer_limit = (
-            int(self.healer_limit) if self.healer_limit != float("inf") else None
+            int(self._data.healer_limit)
+            if self._data.healer_limit != float("inf")
+            else None
         )
-        self.embed.set_field_at(
-            1,
+        embed.add_field(
             name=(
-                f"Healer ({len(self.healer_members)}"
+                f"{LukEmojis.sup} Support ({len(self._data.healer_members)}"
                 f"{f'/{healer_limit}' if healer_limit is not None else ''})"
             ),
-            value="\n".join(self.healer_members) if self.healer_members else "\u200b",
+            value=self.update_members(self._data.healer_members, limit=healer_limit),
         )
 
-        tank_limit = int(self.tank_limit) if self.tank_limit != float("inf") else None
-        self.embed.set_field_at(
-            2,
+        tank_limit = (
+            int(self._data.tank_limit)
+            if self._data.tank_limit != float("inf")
+            else None
+        )
+        embed.add_field(
             name=(
-                f"Tank ({len(self.tank_members)}"
+                f"{LukEmojis.tank} Tank ({len(self._data.tank_members)}"
                 f"{f'/{tank_limit}' if tank_limit is not None else ''})"
             ),
-            value="\n".join(self.tank_members) if self.tank_members else "\u200b",
+            value=self.update_members(self._data.tank_members, limit=tank_limit),
         )
 
-        waitlist_limit = (
-            int(self.waitlist_limit) if self.waitlist_limit != float("inf") else None
+        embed.set_author(
+            name=self._data.owner.name,
+            icon_url=self._data.owner.icon_url,
+            url=f"https://luk.gg/bpsr?data={self._data.model_dump_json()}",
         )
-        self.embed.set_field_at(
-            3,
-            name=(
-                f"Waiting ({len(self.waiting_members)}"
-                f"{f'/{waitlist_limit}' if waitlist_limit is not None else ''})"
+
+        return embed
+
+    def update_members(self, members: list[_GroupUser], limit: float | None) -> str:
+        if not members:
+            return "\u200b"
+
+        members.sort(key=lambda m: m.help)
+
+        return "\n".join(
+            (
+                f"{member.role} <@{member.id}> "
+                f"{'' if (member.airona is None) else IMAGINE_EMOJIS['airona'][member.airona]} "  # noqa: E501
+                f"{'' if (member.tina is None) else IMAGINE_EMOJIS['tina'][member.tina]} "  # noqa: E501
+                f"{LukEmojis.lukchan_wow if member.help else ''} "
+                f"{
+                    (
+                        LukEmojis.alert
+                        if index >= (limit or float('inf')) and not member.help
+                        else ''
+                    )
+                }"
+            )
+            for index, member in enumerate(members)
+        )
+
+    @classmethod
+    def from_message(cls, embed: Embed, message_id: int) -> "GroupEmbedController":
+        if message_id in _INTERNAL_CACHE:
+            return _INTERNAL_CACHE[message_id]
+
+        if not embed.author:
+            raise ValueError("Embed does not have an author.")
+
+        _data = _GroupData.model_validate_json(str(embed.author.url).split("data=")[1])
+        controller = cls(
+            name=_data.name,
+            time=_data.time,
+            desc=_data.desc,
+            dps_limit=_data.dps_limit,
+            healer_limit=_data.healer_limit,
+            tank_limit=_data.tank_limit,
+            owner=_GroupOwner(
+                id=_data.owner.id,
+                name=_data.owner.name,
+                icon_url=_data.owner.icon_url,
             ),
-            value="\n".join(self.waiting_members) if self.waiting_members else "\u200b",
         )
+        controller._data = _data
+
+        _INTERNAL_CACHE[message_id] = controller
+
+        return controller
+
+    def add_member(self, member: Member | User, role: str, emoji: PartialEmoji) -> None:
+        user_data = self.pop_member(member) or _GroupUser(
+            id=member.id,
+            role=str(emoji),
+        )
+
+        user_data.role = str(emoji)
+
+        if role == "dps":
+            self._data.dps_members.append(user_data)
+        elif role == "healer":
+            self._data.healer_members.append(user_data)
+        elif role == "tank":
+            self._data.tank_members.append(user_data)
+
+        self._embed = None
+
+    def pop_member(self, member: Member | User) -> _GroupUser | None:
+        for user_list in [
+            self._data.dps_members,
+            self._data.healer_members,
+            self._data.tank_members,
+        ]:
+            for index, user in enumerate(user_list):
+                if user.id == member.id:
+                    user_list.pop(index)
+                    return user.model_copy(deep=True)
+        return None
+
+    def remove_member(self, member: Member | User) -> None:
+        for user_list in [
+            self._data.dps_members,
+            self._data.healer_members,
+            self._data.tank_members,
+        ]:
+            for index, user in enumerate(user_list):
+                if user.id == member.id:
+                    user_list.pop(index)
+                    self._embed = None
+                    return
+
+    def toggle_help(self, member: Member | User) -> bool | None:
+        for user in (
+            self._data.dps_members + self._data.healer_members + self._data.tank_members
+        ):
+            if user.id == member.id:
+                user.help = not user.help
+                self._embed = None
+                return user.help
+        return None
+
+    def set_imagine(
+        self,
+        member: Member | User,
+        airona: int | None = None,
+        tina: int | None = None,
+    ) -> None:
+        for users_list in [
+            self._data.dps_members,
+            self._data.healer_members,
+            self._data.tank_members,
+        ]:
+            for user in users_list:
+                if user.id == member.id:
+                    user.airona = airona
+                    user.tina = tina
+                    self._embed = None
+                    return

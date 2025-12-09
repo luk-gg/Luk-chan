@@ -1,18 +1,31 @@
-from typing import Any
+from datetime import timedelta
+from typing import TypedDict
 
 from dateutil.parser import parse
-from discord import Interaction, Member, TextStyle, ui
+from discord import (
+    ButtonStyle,
+    Interaction,
+    Message,
+    PartialEmoji,
+    SelectOption,
+    TextStyle,
+    ui,
+)
 
+from src._constants import PRESETS, TeamPreset
+from src._emojis import LukEmojis
 from src._utils import TIMEZONES, datetime_now
-from src.embeds.team.group_controller import GroupEmbedController
+from src.embeds.team.group_controller import IMAGINE_EMOJIS, GroupEmbedController
 
 
 class CreateGroupModal(ui.Modal):
-    def __init__(self) -> None:
+    def __init__(self, preset: TeamPreset) -> None:
         super().__init__(
             title="Create a Team",
             timeout=300,
         )
+
+        self.preset = preset
 
         self.group_name = ui.TextInput["CreateGroupModal"](
             label="Name or Objective",
@@ -25,7 +38,7 @@ class CreateGroupModal(ui.Modal):
             label="Description",
             style=TextStyle.paragraph,
             placeholder="Enter a brief description of your group",
-            max_length=200,
+            max_length=1000,
             required=False,
         )
 
@@ -33,34 +46,38 @@ class CreateGroupModal(ui.Modal):
             label="Preferred Meeting Time (future only)",
             style=TextStyle.short,
             placeholder="e.g., '2024-12-31 20:00 BRT' or 'Dec 31 8pm EST'",
+            default=(datetime_now() + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M %Z"),
             required=True,
         )
 
-        self.limit = ui.TextInput["CreateGroupModal"](
-            label="Member Limit",
+        self.fields = ui.TextInput["CreateGroupModal"](
+            label="Fields and Limits",
             style=TextStyle.short,
-            placeholder=(
-                "e.g., 'DPS:3 Healer:1 Tank:1 Waitlist:2' "
-                "for 3 DPS, 1 Healer, 1 Tank, 2 Waitlist"
-            ),
+            placeholder=("e.g., 'DPS:3 Healer:1 Tank:1' for 3 DPS, 1 Healer, 1 Tank"),
             required=False,
-            default="DPS:3 Healer:1 Tank:1 Waitlist",
+            default=self._get_preset(preset),
         )
 
         self.add_item(self.group_name)
         self.add_item(self.description)
         self.add_item(self.time)
-        self.add_item(self.limit)
+        self.add_item(self.fields)
+
+    def _get_preset(self, preset: TeamPreset) -> str:
+        return " ".join(
+            f"{field['name']}:{field['default_limit']}"
+            for field in PRESETS.get(preset, PRESETS[TeamPreset.BPSR5])
+        )
 
     def parse_limit(
         self,
-    ) -> tuple[float, float, float, float]:
-        dps, healers, tanks, waitlist = 3, 1, 1, float("inf")
-        if not self.limit.value:
-            return dps, healers, tanks, waitlist
+    ) -> tuple[float, float, float]:
+        dps, healers, tanks = 3, 1, 1
+        if not self.fields.value:
+            return dps, healers, tanks
 
         try:
-            parts = self.limit.value.split()
+            parts = self.fields.value.split()
             for part in parts:
                 role_part = part.split(":")
                 if len(role_part) != 2:  # noqa: PLR2004
@@ -76,18 +93,16 @@ class CreateGroupModal(ui.Modal):
                     healers = count_int
                 elif role.lower() == "tank":
                     tanks = count_int
-                elif role.lower() == "waitlist":
-                    waitlist = count_int
         except ValueError:
-            return dps, healers, tanks, waitlist
+            return dps, healers, tanks
         else:
-            return dps, healers, tanks, waitlist
+            return dps, healers, tanks
 
     async def on_submit(self, interaction: Interaction) -> None:
         group_name = self.group_name.value
         description = self.description.value
         leader = interaction.user
-        limit = self.parse_limit()
+        dps_limit, healer_limit, tank_limit = self.parse_limit()
         time = parse(
             self.time.value,
             tzinfos=TIMEZONES,
@@ -101,103 +116,296 @@ class CreateGroupModal(ui.Modal):
             msg = "The specified time is in the past. Please provide a future time."
             raise ValueError(msg)
 
-        await interaction.response.send_message(
-            embed=GroupEmbedController(
-                name=group_name,
-                limit=limit,
-                time=time,
-                desc=description,
-                author=leader if isinstance(leader, Member) else None,
-            ).embed,
-            view=GroupView(),
+        controller = GroupEmbedController(
+            name=group_name,
+            dps_limit=dps_limit,
+            healer_limit=healer_limit,
+            tank_limit=tank_limit,
+            time=time,
+            desc=description,
+            owner=leader,
         )
+
+        await interaction.response.send_message(
+            embed=controller.embed,
+            ephemeral=True,
+            view=_ConfirmGroupCreateView(controller),
+        )
+
+
+class _ConfirmGroupCreateView(ui.View):
+    def __init__(self, controller: GroupEmbedController) -> None:
+        super().__init__(timeout=300)
+        self.controller = controller
+
+    @ui.button(
+        label="Confirm",
+        style=ButtonStyle.success,
+        custom_id="confirm_create_group:confirm",
+    )
+    async def confirm_button(
+        self,
+        interaction: Interaction,
+        _: ui.Button["_ConfirmGroupCreateView"],
+    ) -> None:
+        await interaction.response.send_message(
+            content="Group creation confirmed!",
+            ephemeral=True,
+        )
+        await interaction.followup.send(embed=self.controller.embed, view=GroupView())
 
 
 class GroupView(ui.View):
     def __init__(self) -> None:
         super().__init__(timeout=None)
+        self.controller: GroupEmbedController | None = None
 
-        self.add_item(DpsButton())
-        self.add_item(HealerButton())
-        self.add_item(TankButton())
-        self.add_item(WaitingButton())
-
-    async def button_callback(
+    @ui.button(
+        label="Join Group",
+        style=ButtonStyle.primary,
+        custom_id="group_view:join_group",
+    )
+    async def join_button(
         self,
-        interaction: Interaction[Any],
-        button: "_BaseButton",
+        interaction: Interaction,
+        _: ui.Button["GroupView"],
     ) -> None:
-        if not interaction.message or not interaction.message.embeds:
-            return
-
-        await interaction.response.defer()
-
-        embed_controller = await GroupEmbedController.from_message(
-            interaction.message.embeds[0],
-        )
-
-        joined, left = await embed_controller.button_clicked(
-            button.custom_id,  # pyright: ignore[reportArgumentType]
-            interaction.user,
-        )
-
-        if not joined and not left:
-            await interaction.followup.send(
-                content="The selected role is full. Please choose a different role.",
+        if not interaction.message:
+            await interaction.response.send_message(
+                content="Error: No message found.",
                 ephemeral=True,
             )
             return
 
-        await interaction.edit_original_response(
-            embeds=[
-                embed_controller.embed,
-            ],
-        )
-
-        def group_name(value: str) -> str:
-            return value.title() if value != "dps" else "DPS"
-
-        msg = ""
-
-        if joined:
-            msg += f"joined {group_name(joined)}"
-        if left:
-            if msg:
-                msg += " and "
-            msg += f"left {group_name(left)}"
+        await interaction.response.defer()
 
         await interaction.followup.send(
-            content=f"You have {msg}.",
+            content="Choose your role to join the group.",
+            ephemeral=True,
+            view=JoinGroupView(interaction.message),
+        )
+
+    @ui.button(
+        label="Leave Group",
+        style=ButtonStyle.danger,
+        custom_id="group_view:leave_group",
+    )
+    async def leave_button(
+        self,
+        interaction: Interaction,
+        _: ui.Button["GroupView"],
+    ) -> None:
+        if not interaction.message or not interaction.message.embeds:
+            await interaction.response.send_message(
+                content="Error: No message found.",
+                ephemeral=True,
+            )
+            return
+
+        await interaction.response.defer()
+
+        controller = GroupEmbedController.from_message(
+            interaction.message.embeds[0],
+            message_id=interaction.message.id,
+        )
+        controller.remove_member(interaction.user)
+
+        await interaction.edit_original_response(embed=controller.embed)
+
+        await interaction.followup.send(
+            content="You have left the group.",
             ephemeral=True,
         )
 
 
-class _BaseButton(ui.Button["GroupView"]):
-    def __init__(self, label: str, custom_id: str) -> None:
-        super().__init__(label=label, custom_id=custom_id)
-
-    async def callback(self, interaction: Interaction[Any]) -> None:
-        if not self.view:
-            return
-
-        await self.view.button_callback(interaction, self)
+class _RoleMapping(TypedDict):
+    id: str
+    name: str
+    role: str
+    emoji: PartialEmoji
 
 
-class DpsButton(_BaseButton):
-    def __init__(self) -> None:
-        super().__init__(label="Join as DPS", custom_id="dps")
+_role_mapping: dict[str, _RoleMapping] = {
+    # Classes
+    # DPS
+    "sb": {
+        "id": "sb",
+        "name": "Stormblade",
+        "role": "dps",
+        "emoji": LukEmojis.sb,
+    },
+    "fm": {
+        "id": "fm",
+        "name": "Frost Mage",
+        "role": "dps",
+        "emoji": LukEmojis.fm,
+    },
+    "wk": {
+        "id": "wk",
+        "name": "Wind Knight",
+        "role": "dps",
+        "emoji": LukEmojis.wk,
+    },
+    "mm": {
+        "id": "mm",
+        "name": "Marksman",
+        "role": "dps",
+        "emoji": LukEmojis.mm,
+    },
+    # Healer
+    "vo": {
+        "id": "vo",
+        "name": "Verdant Oracle",
+        "role": "healer",
+        "emoji": LukEmojis.vo,
+    },
+    "bp": {
+        "id": "bp",
+        "name": "Beat Performer",
+        "role": "healer",
+        "emoji": LukEmojis.bp,
+    },
+    # Tank
+    "sk": {
+        "id": "sk",
+        "name": "Shield Knight",
+        "role": "tank",
+        "emoji": LukEmojis.sk,
+    },
+    "hg": {
+        "id": "hg",
+        "name": "Heavy Guardian",
+        "role": "tank",
+        "emoji": LukEmojis.hg,
+    },
+}
 
 
-class HealerButton(_BaseButton):
-    def __init__(self) -> None:
-        super().__init__(label="Join as Healer", custom_id="healer")
+class JoinGroupView(ui.View):
+    def __init__(self, message: Message) -> None:
+        super().__init__(timeout=300)
+        self.message = message
 
+    @ui.select(
+        placeholder="Select your role to join the group",
+        min_values=1,
+        max_values=1,
+        options=[
+            SelectOption(
+                label=role["name"],
+                emoji=role["emoji"],
+                value=id_,
+            )
+            for id_, role in _role_mapping.items()
+        ],
+        custom_id="join_group_view:select_role",
+    )
+    async def select_role(
+        self,
+        interaction: Interaction,
+        select: ui.Select["JoinGroupView"],
+    ) -> None:
+        await interaction.response.defer()
 
-class TankButton(_BaseButton):
-    def __init__(self) -> None:
-        super().__init__(label="Join as Tank", custom_id="tank")
+        selected_role = _role_mapping[select.values[0]]
+        controller = GroupEmbedController.from_message(
+            self.message.embeds[0],
+            message_id=self.message.id,
+        )
+        controller.add_member(
+            member=interaction.user,
+            role=selected_role["role"],
+            emoji=selected_role["emoji"],
+        )
 
+        await self.message.edit(embed=controller.embed)
+        self.message.embeds[0] = controller.embed
 
-class WaitingButton(_BaseButton):
-    def __init__(self) -> None:
-        super().__init__(label="Join Waiting List", custom_id="waiting")
+        await interaction.edit_original_response(
+            content=(
+                f"You have joined the group {selected_role['role']} "
+                f"as a {selected_role['name']}."
+            ),
+        )
+
+    @ui.select(
+        placeholder="Select your human imagines",
+        min_values=0,
+        max_values=2,
+        options=[
+            SelectOption(
+                label=f"{name.title()} A{index}",
+                emoji=emoji,
+                value=f"{name}_{index}",
+            )
+            for name, emojis in IMAGINE_EMOJIS.items()
+            for index, emoji in enumerate(emojis)
+        ],
+        custom_id="join_group_view:select_imagine",
+    )
+    async def select_imagine(
+        self,
+        interaction: Interaction,
+        select: ui.Select["JoinGroupView"],
+    ) -> None:
+        await interaction.response.defer()
+
+        tina: int | None = None
+        airona: int | None = None
+
+        for value in select.values:
+            name, index_str = value.rsplit("_", 1)
+            index = int(index_str)
+            if name == "tina":
+                tina = index
+            elif name == "airona":
+                airona = index
+
+        controller = GroupEmbedController.from_message(
+            self.message.embeds[0],
+            message_id=self.message.id,
+        )
+        controller.set_imagine(member=interaction.user, tina=tina, airona=airona)
+
+        await self.message.edit(embed=controller.embed)
+        self.message.embeds[0] = controller.embed
+
+        await interaction.edit_original_response(
+            content=(
+                "You have set your imagines to "
+                + ", ".join(
+                    f"{name.title()} A{index}"
+                    for name, index in (("tina", tina), ("airona", airona))
+                    if index is not None
+                )
+                + "."
+            ),
+        )
+
+    @ui.button(
+        label="Helping",
+        style=ButtonStyle.success,
+        custom_id="join_group_view:help_button",
+        emoji=LukEmojis.lukchan_wow,
+    )
+    async def help_button(
+        self,
+        interaction: Interaction,
+        _: ui.Button["JoinGroupView"],
+    ) -> None:
+        await interaction.response.defer()
+
+        controller = GroupEmbedController.from_message(
+            self.message.embeds[0],
+            message_id=self.message.id,
+        )
+        helping = controller.toggle_help(member=interaction.user)
+
+        await self.message.edit(embed=controller.embed)
+        self.message.embeds[0] = controller.embed
+
+        await interaction.edit_original_response(
+            content=(
+                "You have toggled your help status to " + ("ON." if helping else "OFF.")
+            ),
+        )

@@ -1,13 +1,16 @@
 from discord import Interaction, Message, app_commands
 from discord.ext import commands
 
+from src._constants import TeamPreset
 from src.components.team.create_group import (
     CreateGroupModal,
     GroupView,
 )
 
 
-class TeamCog(commands.GroupCog, group_name="team", group_description="Team commands"):
+@app_commands.guild_only()
+@app_commands.default_permissions(administrator=True)
+class TeamCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.bot.add_view(GroupView())
@@ -18,11 +21,16 @@ class TeamCog(commands.GroupCog, group_name="team", group_description="Team comm
         )
         self.bot.tree.add_command(self.check_role_ctx)
 
-    @app_commands.guild_only()
-    @app_commands.default_permissions(administrator=True)
-    @app_commands.command(name="create", description="Creates a team")
-    async def create_bpsr_group(self, interaction: Interaction) -> None:
-        await interaction.response.send_modal(CreateGroupModal())
+    @app_commands.command(
+        name="team",
+        description="Create a team group",
+    )
+    async def create_team(
+        self,
+        interaction: Interaction,
+        preset: TeamPreset = TeamPreset.BPSR5,
+    ) -> None:
+        await interaction.response.send_modal(CreateGroupModal(preset))
 
     @app_commands.default_permissions(administrator=True)
     @app_commands.guild_only()

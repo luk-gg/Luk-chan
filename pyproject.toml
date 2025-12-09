@@ -5,8 +5,14 @@ description = "Default template for PDM package"
 authors = [
     { name = "Gabriel Nobrega", email = "gabrieltkdnobrega63@gmail.com" },
 ]
-dependencies = ["discord-py>=2.6.3", "pydantic-settings>=2.11.0", "dateparser>=1.2.2"]
-requires-python = "==3.13.*"
+dependencies = [
+    "discord-py>=2.6.3",
+    "pydantic-settings>=2.11.0",
+    "dateparser>=1.2.2",
+    "cachetools>=6.2.1",
+    "pydantic>=2.12.4",
+]
+requires-python = "==3.12.*"
 readme = "README.md"
 license = { text = "MIT" }
 
