@@ -154,8 +154,6 @@ class _ConfirmGroupCreateView(ui.View):
         _: ui.Button["_ConfirmGroupCreateView"],
     ) -> None:
         await interaction.response.defer()
-        await interaction.followup.send(embed=self.controller.embed, view=GroupView())
-        return
 
         if not interaction.guild:
             await interaction.followup.send(
@@ -174,7 +172,10 @@ class _ConfirmGroupCreateView(ui.View):
             return
 
         msg = await channel.send(embed=self.controller.embed, view=GroupView())
-        await msg.create_thread(name=self.controller.data.name)
+        await msg.create_thread(
+            name=self.controller.data.name,
+            reason="New group created",
+        )
 
         await interaction.followup.send(
             content=f"Group creation confirmed! {msg.jump_url}",
