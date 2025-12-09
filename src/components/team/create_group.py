@@ -172,6 +172,7 @@ class _ConfirmGroupCreateView(ui.View):
             return
 
         msg = await channel.send(embed=self.controller.embed, view=GroupView())
+        await msg.create_thread(name=self.controller.data.name)
 
         await interaction.followup.send(
             content=f"Group creation confirmed! {msg.jump_url}",
