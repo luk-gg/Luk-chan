@@ -1,4 +1,5 @@
 from datetime import datetime
+from urllib.parse import quote, unquote
 
 from cachetools import TTLCache
 from discord import Embed, Member, PartialEmoji, User
@@ -121,6 +122,7 @@ class GroupEmbedController:
                 f"{f'/{dps_limit}' if dps_limit is not None else ''})"
             ),
             value=self.update_members(self.data.dps_members, limit=dps_limit),
+            inline=False,
         )
 
         healer_limit = (
@@ -134,6 +136,7 @@ class GroupEmbedController:
                 f"{f'/{healer_limit}' if healer_limit is not None else ''})"
             ),
             value=self.update_members(self.data.healer_members, limit=healer_limit),
+            inline=False,
         )
 
         tank_limit = (
@@ -145,12 +148,13 @@ class GroupEmbedController:
                 f"{f'/{tank_limit}' if tank_limit is not None else ''})"
             ),
             value=self.update_members(self.data.tank_members, limit=tank_limit),
+            inline=False,
         )
 
         embed.set_author(
             name=self.data.owner.name,
             icon_url=self.data.owner.icon_url,
-            url=f"https://luk.gg/bpsr?data={self.data.model_dump_json()}",
+            url=f"https://luk.gg/bpsr?data={quote(self.data.model_dump_json())}",
         )
 
         return embed
@@ -186,7 +190,11 @@ class GroupEmbedController:
         if not embed.author:
             raise ValueError("Embed does not have an author.")
 
-        _data = _GroupData.model_validate_json(str(embed.author.url).split("data=")[1])
+        url_decoded = unquote(str(embed.author.url))
+
+        _data = _GroupData.model_validate_json(
+            url_decoded.split("data=")[1],
+        )
         controller = cls(
             name=_data.name,
             time=_data.time,

@@ -154,6 +154,8 @@ class _ConfirmGroupCreateView(ui.View):
         _: ui.Button["_ConfirmGroupCreateView"],
     ) -> None:
         await interaction.response.defer()
+        await interaction.followup.send(embed=self.controller.embed, view=GroupView())
+        return
 
         if not interaction.guild:
             await interaction.followup.send(
