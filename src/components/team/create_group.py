@@ -4,6 +4,7 @@ from typing import TypedDict
 from dateutil.parser import parse
 from discord import (
     ButtonStyle,
+    Embed,
     Interaction,
     Member,
     Message,
@@ -16,6 +17,7 @@ from discord import (
 )
 from discord.utils import format_dt
 
+from src._colors import LukColors
 from src._constants import PRESETS, TeamPreset
 from src._emojis import LukEmojis
 from src._settings import config
@@ -172,10 +174,29 @@ class _ConfirmGroupCreateView(ui.View):
             return
 
         msg = await channel.send(embed=self.controller.embed, view=GroupView())
-        await msg.create_thread(
+        thread = await msg.create_thread(
             name=self.controller.data.name,
             reason="New group created",
         )
+
+        embed = Embed(
+            description=(
+                "This is the discussion thread for the group.\n"
+                "Go to the main message to join or leave the group."
+            ),
+            color=LukColors.primary_blue,
+        )
+        msg_2 = await thread.send(
+            embed=embed,
+            view=ui.View().add_item(
+                item=ui.Button(
+                    url=msg.jump_url,
+                    label="Message",
+                    style=ButtonStyle.link,
+                ),
+            ),
+        )
+        await msg_2.pin(reason="Pinning group discussion thread info message")
 
         await interaction.followup.send(
             content=f"Group creation confirmed! {msg.jump_url}",
