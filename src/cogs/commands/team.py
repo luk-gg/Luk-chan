@@ -1,4 +1,4 @@
-from discord import Interaction, Message, app_commands
+from discord import Interaction, Member, Message, TextChannel, app_commands
 from discord.ext import commands
 
 from src._constants import TeamPreset
@@ -6,6 +6,7 @@ from src.components.team.create_group import (
     CreateGroupModal,
     GroupView,
 )
+from src.embeds.team.group_controller import GroupEmbedController
 
 
 @app_commands.guild_only()
@@ -41,23 +42,39 @@ class TeamCog(commands.Cog):
     ) -> None:
         await interaction.response.defer(ephemeral=True, thinking=True)
 
+        if not isinstance(interaction.user, Member):
+            await interaction.followup.send(
+                "This command can only be used by members. (in a guild)",
+            )
+            return
+
         if not message.embeds:
             await interaction.followup.send("This message has no embeds.")
             return
 
-        members = {
-            str(field.name).rsplit(" ", 1)[0]: str(field.value).splitlines()
-            for field in message.embeds[0].fields
-        }
+        if (
+            not isinstance(interaction.channel, TextChannel)
+            or not interaction.channel.threads
+        ):
+            await interaction.followup.send(
+                "Could not find any threads in this channel.",
+            )
+            return
 
-        response = "\n\n".join(
-            f"**{role}**:\n"
-            + "\n".join(f"- {member}" for member in member_list if member != "\u200b")
-            for role, member_list in members.items()
-            if member_list and member_list != ["\u200b"]
+        controller = GroupEmbedController.from_message(message.embeds[0], message.id)
+
+        if (
+            interaction.user.id != controller.data.owner.id
+            and not interaction.channel.permissions_for(interaction.user)
+        ):
+            await interaction.followup.send(
+                "You are not the owner of this group.",
+            )
+            return
+
+        await interaction.edit_original_response(
+            embeds=controller.generate_call_message(),
         )
-
-        await interaction.edit_original_response(content=f"```\n{response}\n```")
 
 
 async def setup(bot: commands.Bot) -> None:
