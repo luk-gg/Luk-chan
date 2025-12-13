@@ -70,7 +70,7 @@ class TeamCog(commands.Cog):
             )
             return
 
-        thread = interaction.messsage.thread or await interaction.message.fetch_thread()
+        thread = interaction.message.thread or await interaction.message.fetch_thread()
 
         if not thread:
             await interaction.followup.send(
