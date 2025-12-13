@@ -313,23 +313,28 @@ class GroupEmbedController:
             ("Support", self.data.healer_members, self.data.healer_limit),
             ("Tank", self.data.tank_members, self.data.tank_limit),
         ]:
-            lines.append(
+            title = (
                 f"{role_name} ({len(members)}"
-                f"{f'/{int(limit)}' if limit != float('inf') else ''}):",
+                f"{f'/{int(limit)}' if limit != float('inf') else ''}):"
             )
+            member_list: list[str] = []
             if not members:
-                lines.append("  (none)")
+                member_list.append("(none)")
             else:
                 for index, member in enumerate(members):
-                    lines.append(
-                        f"  {index + 1}. {member.role} <@{member.id}> "
+                    member_list.append(
+                        f"{index + 1}. {member.role} <@{member.id}> "
                         f"{'' if (member.airona is None) else f'Airona A{member.airona}'} "  # noqa: E501
                         f"{'' if (member.tina is None) else f'Tina A{member.tina}'} "
-                        f"{LukEmojis.lukchan_wow if member.help else ''} ",
+                        f"{LukEmojis.lukchan_wow if member.help else ''}",
                     )
-            lines.append("")
+            lines.append(f"{title}\n" + "\n".join(member_list))
 
-        return "\n".join(lines).strip()
+        return (
+            f"-# Leader (<@{self.data.owner.id}>) is calling for team members to join\n\n"  # noqa: E501
+            f"**{self.data.name}** - {format_dt(self.data.time, style='R')}\n"
+            f"{self.data.desc}\n" + "\n\n".join(lines).strip()
+        )
 
     def generate_call_message(self) -> list[Embed]:
         main_embed = Embed(

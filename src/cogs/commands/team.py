@@ -1,4 +1,11 @@
-from discord import Interaction, Member, Message, TextChannel, app_commands
+from discord import (
+    AllowedMentions,
+    Interaction,
+    Member,
+    Message,
+    TextChannel,
+    app_commands,
+)
 from discord.ext import commands
 
 from src._constants import TeamPreset
@@ -74,7 +81,10 @@ class TeamCog(commands.Cog):
 
         thread = interaction.channel.threads[0]
 
-        msg = await thread.send(embeds=controller.generate_call_message())
+        msg = await thread.send(
+            content=controller.generate_list(),
+            allowed_mentions=AllowedMentions.all(),
+        )
         await interaction.edit_original_response(
             content=f"Sent team call. {msg.jump_url}",
         )
