@@ -72,7 +72,7 @@ class TeamCog(commands.Cog):
 
         if (
             interaction.user.id != controller.data.owner.id
-            or not interaction.channel.permissions_for(interaction.user).administrator
+            and not interaction.channel.permissions_for(interaction.user).administrator
         ):
             await interaction.followup.send(
                 "You are not the owner of this group nor an administrator.",
