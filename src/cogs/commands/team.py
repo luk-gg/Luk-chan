@@ -59,12 +59,9 @@ class TeamCog(commands.Cog):
             await interaction.followup.send("This message has no embeds.")
             return
 
-        if (
-            not isinstance(interaction.channel, TextChannel)
-            or not interaction.channel.threads
-        ):
+        if not interaction.message.thread:
             await interaction.followup.send(
-                "Could not find any threads in this channel.",
+                "Could not find any thread from this message.",
             )
             return
 
@@ -79,7 +76,7 @@ class TeamCog(commands.Cog):
             )
             return
 
-        thread = interaction.channel.threads[0]
+        thread = interaction.message.thread
 
         msg = await thread.send(
             content=controller.generate_list(interaction.user),
