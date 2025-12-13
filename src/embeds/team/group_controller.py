@@ -1,5 +1,6 @@
+import base64
+import zlib
 from datetime import datetime
-from urllib.parse import quote, unquote
 
 from cachetools import TTLCache
 from discord import Embed, Member, PartialEmoji, User
@@ -93,6 +94,18 @@ class GroupEmbedController:
         )
         self._embed: Embed | None = None
 
+    def _encode_data(self) -> str:
+        return base64.urlsafe_b64encode(
+            zlib.compress(
+                self.data.model_dump_json().encode(),
+                level=9,
+            ),
+        ).decode()
+
+    @classmethod
+    def _decode_data(cls, data_str: str) -> bytes:
+        return zlib.decompress(base64.urlsafe_b64decode(data_str))
+
     @property
     def embed(self) -> Embed:
         if self._embed is None:
@@ -154,7 +167,7 @@ class GroupEmbedController:
         embed.set_author(
             name=self.data.owner.name,
             icon_url=self.data.owner.icon_url,
-            url=f"https://luk.gg/bpsr?data={quote(self.data.model_dump_json())}",
+            url=f"https://luk.gg/bpsr?data={self._encode_data()}",
         )
 
         return embed
@@ -190,10 +203,8 @@ class GroupEmbedController:
         if not embed.author:
             raise ValueError("Embed does not have an author.")
 
-        url_decoded = unquote(str(embed.author.url))
-
         _data = _GroupData.model_validate_json(
-            url_decoded.split("data=")[1],
+            cls._decode_data(str(embed.author.url).split("data=")[1]),
         )
         controller = cls(
             name=_data.name,
@@ -293,3 +304,40 @@ class GroupEmbedController:
                     user.tina = tina
                     self._embed = None
                     return
+
+    def generate_list(self) -> str:
+        lines: list[str] = []
+
+        for role_name, members, limit in [
+            ("Damage", self.data.dps_members, self.data.dps_limit),
+            ("Support", self.data.healer_members, self.data.healer_limit),
+            ("Tank", self.data.tank_members, self.data.tank_limit),
+        ]:
+            lines.append(
+                f"{role_name} ({len(members)}"
+                f"{f'/{int(limit)}' if limit != float('inf') else ''}):",
+            )
+            if not members:
+                lines.append("  (none)")
+            else:
+                for index, member in enumerate(members):
+                    lines.append(
+                        f"  {index + 1}. {member.role} <@{member.id}> "
+                        f"{'' if (member.airona is None) else f'Airona A{member.airona}'} "  # noqa: E501
+                        f"{'' if (member.tina is None) else f'Tina A{member.tina}'} "
+                        f"{LukEmojis.lukchan_wow if member.help else ''} ",
+                    )
+            lines.append("")
+
+        return "\n".join(lines).strip()
+
+    def generate_call_message(self) -> list[Embed]:
+        main_embed = Embed(
+            description=(
+                "This is an automated call for team members to join.\n"
+                "Please respond if you are available."
+            ),
+            colour=LukColors.primary_blue,
+        )
+
+        return [main_embed, self.embed]
