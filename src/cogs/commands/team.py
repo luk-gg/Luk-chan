@@ -65,15 +65,18 @@ class TeamCog(commands.Cog):
 
         if (
             interaction.user.id != controller.data.owner.id
-            and not interaction.channel.permissions_for(interaction.user)
+            or not interaction.channel.permissions_for(interaction.user).administrator
         ):
             await interaction.followup.send(
-                "You are not the owner of this group.",
+                "You are not the owner of this group nor an administrator.",
             )
             return
 
+        thread = interaction.channel.threads[0]
+
+        msg = await thread.send(embeds=controller.generate_call_message())
         await interaction.edit_original_response(
-            embeds=controller.generate_call_message(),
+            content=f"Sent team call. {msg.jump_url}",
         )
 
 
