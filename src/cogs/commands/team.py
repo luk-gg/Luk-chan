@@ -82,7 +82,7 @@ class TeamCog(commands.Cog):
         thread = interaction.channel.threads[0]
 
         msg = await thread.send(
-            content=controller.generate_list(),
+            content=controller.generate_list(interaction.user),
             allowed_mentions=AllowedMentions.all(),
         )
         await interaction.edit_original_response(
