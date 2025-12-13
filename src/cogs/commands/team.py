@@ -59,12 +59,6 @@ class TeamCog(commands.Cog):
             await interaction.followup.send("This message has no embeds.")
             return
 
-        if not interaction.message.thread:
-            await interaction.followup.send(
-                "Could not find any thread from this message.",
-            )
-            return
-
         controller = GroupEmbedController.from_message(message.embeds[0], message.id)
 
         if (
@@ -76,7 +70,13 @@ class TeamCog(commands.Cog):
             )
             return
 
-        thread = interaction.message.thread
+        thread = interaction.messsage.thread or await interaction.message.fetch_thread()
+
+        if not thread:
+            await interaction.followup.send(
+                "Could not find any thread from this message.",
+            )
+            return
 
         msg = await thread.send(
             content=controller.generate_list(interaction.user),
