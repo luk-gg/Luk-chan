@@ -305,7 +305,7 @@ class GroupEmbedController:
                     self._embed = None
                     return
 
-    def generate_list(self) -> str:
+    def generate_list(self, caller: User | Member | None = None) -> str:
         lines: list[str] = []
 
         for role_name, members, limit in [
@@ -331,7 +331,7 @@ class GroupEmbedController:
             lines.append(f"{title}\n" + "\n".join(member_list))
 
         return (
-            f"-# Leader (<@{self.data.owner.id}>) is calling for team members to join\n\n"  # noqa: E501
+            f"-# <@{caller.id if caller else self.data.owner.id}> is calling for team members to join\n\n"  # noqa: E501
             f"**{self.data.name}** - {format_dt(self.data.time, style='R')}\n"
             f"{self.data.desc}\n" + "\n\n".join(lines).strip()
         )
