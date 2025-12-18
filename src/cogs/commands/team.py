@@ -3,7 +3,6 @@ from discord import (
     Interaction,
     Member,
     Message,
-    TextChannel,
     app_commands,
 )
 from discord.ext import commands
@@ -63,7 +62,7 @@ class TeamCog(commands.Cog):
 
         if (
             interaction.user.id != controller.data.owner.id
-            and not interaction.channel.permissions_for(interaction.user).administrator
+            and not message.channel.permissions_for(interaction.user).administrator
         ):
             await interaction.followup.send(
                 "You are not the owner of this group nor an administrator.",
