@@ -190,9 +190,9 @@ class GroupEmbedController:
         return "\n".join(
             (
                 f"{member.role} <@{member.id}> "
-                f"{'' if (member.airona is None) else f'A{member.airona}'} "
-                f"{'' if (member.tina is None) else f'T{member.tina}'} "
-                f"{'' if (member.basilisk is None) else f'B{member.basilisk}'} "
+                f"{'' if (member.airona is None) else f'A {member.airona}★'} "
+                f"{'' if (member.tina is None) else f'T {member.tina}★'} "
+                f"{'' if (member.basilisk is None) else f'B {member.basilisk}★'} "
                 f"{LukEmojis.lukchan_wow if member.help else ''} "
                 f"{
                     (
@@ -336,9 +336,9 @@ class GroupEmbedController:
                 for index, member in enumerate(members):
                     member_list.append(
                         f"{index + 1}. {member.role} <@{member.id}> "
-                        f"{'' if (member.airona is None) else f'Airona A{member.airona}'} "  # noqa: E501
-                        f"{'' if (member.tina is None) else f'Tina A{member.tina}'} "
-                        f"{'' if (member.basilisk is None) else f'Basilisk A{member.basilisk}'} "  # noqa: E501
+                        f"{'' if (member.airona is None) else f'Airona {member.airona}★'} "  # noqa: E501
+                        f"{'' if (member.tina is None) else f'Tina {member.tina}★'} "
+                        f"{'' if (member.basilisk is None) else f'Basilisk {member.basilisk}★'} "  # noqa: E501
                         f"{LukEmojis.lukchan_wow if member.help else ''}",
                     )
             lines.append(f"{title}\n" + "\n".join(member_list))

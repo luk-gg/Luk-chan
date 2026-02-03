@@ -357,9 +357,9 @@ class JoinGroupView(ui.View):
                 ""
                 if (user.airona is None)
                 else (
-                    f"Airona A{
+                    f"Airona {
                         IMAGINE_EMOJIS['airona'][user.airona].name.rsplit('A', 1)[1]
-                    }"
+                    }★"
                 )
             )
 
@@ -367,14 +367,14 @@ class JoinGroupView(ui.View):
                 ""
                 if (user.tina is None)
                 else (
-                    f"Tina A{IMAGINE_EMOJIS['tina'][user.tina].name.rsplit('A', 1)[1]}"
+                    f"Tina {IMAGINE_EMOJIS['tina'][user.tina].name.rsplit('A', 1)[1]}★"
                 )
             )
             basilisk = (
                 ""
                 if (user.basilisk is None)
                 else (
-                    f"Basilisk A{IMAGINE_EMOJIS['basilisk'][user.basilisk].name.rsplit('A', 1)[1]}"  # noqa: E501
+                    f"Basilisk {IMAGINE_EMOJIS['basilisk'][user.basilisk].name.rsplit('A', 1)[1]}★"  # noqa: E501
                 )
             )
 
@@ -441,7 +441,7 @@ class JoinGroupView(ui.View):
         max_values=2,
         options=[
             SelectOption(
-                label=f"{name.title()} A{index}",
+                label=f"{name.title()} {index}★",
                 value=f"{name}_{index}",
             )
             for name, emojis in IMAGINE_EMOJIS.items()
