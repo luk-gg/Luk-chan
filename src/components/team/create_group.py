@@ -370,14 +370,27 @@ class JoinGroupView(ui.View):
                     f"Tina A{IMAGINE_EMOJIS['tina'][user.tina].name.rsplit('A', 1)[1]}"
                 )
             )
+            basilisk = (
+                ""
+                if (user.basilisk is None)
+                else (
+                    f"Basilisk A{IMAGINE_EMOJIS['basilisk'][user.basilisk].name.rsplit('A', 1)[1]}"  # noqa: E501
+                )
+            )
 
             return (
                 f"You have joined {controller.data.owner.name}'s group "
                 f'"{controller.data.name}" at {format_dt(controller.data.time, "F")} '
                 f"as {_role_mapping[user_role]['name']}{
-                    ('' if not user.airona and not user.tina else ' with ')
+                    (
+                        ''
+                        if not user.airona and not user.tina and not user.basilisk
+                        else ' with '
+                    )
                 }"
-                f"{airona}{(' and ' if airona and tina else '')}{tina}."
+                f"{airona}{(' and ' if airona and tina else '')}{tina}{
+                    (' and ' if (airona or tina) and basilisk else '')
+                }{basilisk}."
                 f"{' You are also helping!' if user.help else ''}"
             )
 
@@ -423,17 +436,16 @@ class JoinGroupView(ui.View):
         )
 
     @ui.select(
-        placeholder="Select your human imagines",
+        placeholder="Select your imagines",
         min_values=0,
         max_values=2,
         options=[
             SelectOption(
                 label=f"{name.title()} A{index}",
-                emoji=emoji,
                 value=f"{name}_{index}",
             )
             for name, emojis in IMAGINE_EMOJIS.items()
-            for index, emoji in enumerate(emojis)
+            for index, _ in enumerate(emojis)
         ],
         custom_id="join_group_view:select_imagine",
     )
@@ -446,6 +458,7 @@ class JoinGroupView(ui.View):
 
         tina: int | None = None
         airona: int | None = None
+        basilisk: int | None = None
 
         for value in select.values:
             name, index_str = value.rsplit("_", 1)
@@ -454,12 +467,19 @@ class JoinGroupView(ui.View):
                 tina = index
             elif name == "airona":
                 airona = index
+            elif name == "basilisk":
+                basilisk = index
 
         controller = GroupEmbedController.from_message(
             self.message.embeds[0],
             message_id=self.message.id,
         )
-        controller.set_imagine(member=interaction.user, tina=tina, airona=airona)
+        controller.set_imagine(
+            member=interaction.user,
+            tina=tina,
+            airona=airona,
+            basilisk=basilisk,
+        )
 
         await self.message.edit(embed=controller.embed)
         self.message.embeds[0] = controller.embed
