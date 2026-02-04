@@ -60,7 +60,7 @@ class CreateGroupModal(ui.Modal):
         self.fields = ui.TextInput["CreateGroupModal"](
             label="Fields and Limits",
             style=TextStyle.short,
-            placeholder=("e.g., 'DPS:3 Healer:1 Tank:1' for 3 DPS, 1 Healer, 1 Tank"),
+            placeholder=("e.g., 'DPS:3 Sup:1 Tank:1' for 3 DPS, 1 Sup, 1 Tank"),
             required=False,
             default=self._get_preset(preset),
         )
@@ -96,7 +96,7 @@ class CreateGroupModal(ui.Modal):
                 count_int = float(count)
                 if role.lower() == "dps":
                     dps = count_int
-                elif role.lower() == "healer":
+                elif role.lower() == "sup":
                     healers = count_int
                 elif role.lower() == "tank":
                     tanks = count_int

@@ -18,22 +18,22 @@ class _Field(TypedDict):
 PRESETS: dict[TeamPreset, list[_Field]] = {
     TeamPreset.BPSR5: [
         {"name": "DPS", "default_limit": 3},
-        {"name": "Healer", "default_limit": 1},
+        {"name": "Sup", "default_limit": 1},
         {"name": "Tank", "default_limit": 1},
     ],
     TeamPreset.BPSR10: [
         {"name": "DPS", "default_limit": 6},
-        {"name": "Healer", "default_limit": 2},
+        {"name": "Sup", "default_limit": 2},
         {"name": "Tank", "default_limit": 2},
     ],
     TeamPreset.BPSR15: [
         {"name": "DPS", "default_limit": 9},
-        {"name": "Healer", "default_limit": 3},
+        {"name": "Sup", "default_limit": 3},
         {"name": "Tank", "default_limit": 3},
     ],
     TeamPreset.BPSR20: [
         {"name": "DPS", "default_limit": 12},
-        {"name": "Healer", "default_limit": 4},
+        {"name": "Sup", "default_limit": 4},
         {"name": "Tank", "default_limit": 4},
     ],
 }
