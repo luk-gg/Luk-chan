@@ -14,6 +14,7 @@ from src.components.team.create_group import (
     CreateGroupModal,
     GroupView,
 )
+from src.components.team.edit_group import EditGroupModal
 from src.embeds.team.group_controller import GroupEmbedController
 
 
@@ -38,7 +39,7 @@ class TeamCog(commands.Cog):
         )
 
         self.bot.tree.add_command(self.team_list_ctx)
-        # self.bot.tree.add_command(self.team_edit_ctx)
+        self.bot.tree.add_command(self.team_edit_ctx)
         self.bot.tree.add_command(self.team_delete_ctx)
 
     @app_commands.command(
@@ -105,7 +106,34 @@ class TeamCog(commands.Cog):
         interaction: Interaction[commands.Bot],
         message: Message,
     ) -> None:
-        pass
+        if not isinstance(interaction.user, Member):
+            await interaction.followup.send(
+                "This command can only be used by members. (in a guild)",
+            )
+            return
+
+        if not message.embeds:
+            await interaction.followup.send("This message has no embeds.")
+            return
+
+        controller = GroupEmbedController.from_message(
+            message.embeds[0],
+            message.id,
+            no_cache=True,
+        )
+
+        if (
+            interaction.user.id != controller.data.owner.id
+            and not message.channel.permissions_for(interaction.user).administrator
+        ):
+            await interaction.followup.send(
+                "You are not the owner of this group nor an administrator.",
+            )
+            return
+
+        await interaction.response.send_modal(
+            EditGroupModal(controller, message),
+        )
 
     @app_commands.default_permissions(administrator=True)
     @app_commands.guild_only()
