@@ -5,7 +5,7 @@ from datetime import datetime
 from cachetools import TTLCache
 from discord import Embed, Member, PartialEmoji, User
 from discord.utils import format_dt
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from src._colors import LukColors
 from src._emojis import LukEmojis
@@ -45,6 +45,13 @@ class _GroupData(BaseModel):
     tank_members: list[_GroupUser] = []
 
     owner: _GroupOwner
+
+    @field_validator("dps_limit", "healer_limit", "tank_limit", mode="before")
+    @classmethod
+    def _validate_limits(cls, v: float | str | None) -> float:
+        if (isinstance(v, str) and v.lower() == "inf") or v is None:
+            return float("inf")
+        return float(v)
 
 
 IMAGINE_EMOJIS = {
@@ -206,8 +213,14 @@ class GroupEmbedController:
         )
 
     @classmethod
-    def from_message(cls, embed: Embed, message_id: int) -> "GroupEmbedController":
-        if message_id in _INTERNAL_CACHE:
+    def from_message(
+        cls,
+        embed: Embed,
+        message_id: int,
+        *,
+        no_cache: bool = False,
+    ) -> "GroupEmbedController":
+        if not no_cache and message_id in _INTERNAL_CACHE:
             return _INTERNAL_CACHE[message_id]
 
         if not embed.author:
