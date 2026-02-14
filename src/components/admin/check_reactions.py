@@ -191,15 +191,11 @@ class SendNotifyToWhoDidnt(ui.Button["CheckReactionsView"]):
             except discord.HTTPException as e:
                 failed.append({"member": member, "error": e.text})
 
-        newline = "\n"
-        failed_mentions = newline.join(
-            f"{f['member'].mention}: {f['error']}" for f in failed
-        )
         await interaction.followup.send(
             content=(
                 f"Notified {len(self.members) - len(failed)} member(s). \n"
                 f"Failed to notify {len(failed)} member(s): \n"
-                f"{failed_mentions}"
+                f"{'\n'.join(f'{f["member"].mention}: {f["error"]}' for f in failed)}"
             ),
             ephemeral=True,
         )
