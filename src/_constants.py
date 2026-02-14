@@ -38,7 +38,7 @@ PRESETS: dict[TeamPreset, list[_Field]] = {
     ],
 }
 
-type Timezones = Literal[
+Timezones = Literal[
     "BRT",
     "ART",
     "CLT",
