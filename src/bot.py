@@ -6,6 +6,7 @@ from discord.ext import commands
 from src._logging import setup_logging
 from src._settings import config
 from src._setup_hook import load_cogs
+from src.db._base import Database
 
 _INTENTS = Intents.default()
 _INTENTS.members = True
@@ -27,6 +28,8 @@ class LukChan(commands.Bot):
 
     async def setup_hook(self) -> None:
         setup_logging()
+
+        await Database.connect()
 
         await load_cogs(self)
 

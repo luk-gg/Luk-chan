@@ -11,6 +11,7 @@ dependencies = [
     "dateparser>=1.2.2",
     "cachetools>=6.2.1",
     "pydantic>=2.12.4",
+    "pymongo>=4.16.0",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
