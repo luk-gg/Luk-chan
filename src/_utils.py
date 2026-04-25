@@ -23,3 +23,32 @@ def datetime_now() -> datetime:
         datetime: The current datetime with UTC timezone.
     """
     return datetime.now(tz=ZoneInfo("UTC"))
+
+
+def datetime_to_relative_past_string(dt: datetime) -> str:
+    """Calculate the relative time difference from a given datetime to now.
+
+    Args:
+        dt (datetime): The datetime to compare with the current time.
+
+    Returns:
+        str: A string representing the relative time difference.
+    """
+    delta = datetime_now() - dt
+    total_seconds = int(delta.total_seconds())
+
+    intervals = (
+        ("year", 365 * 24 * 60 * 60),
+        ("month", 30 * 24 * 60 * 60),
+        ("day", 24 * 60 * 60),
+        ("hour", 60 * 60),
+        ("minute", 60),
+        ("second", 1),
+    )
+
+    for name, seconds in intervals:
+        value = total_seconds // seconds
+        if value > 0:
+            return f"{value} {name}{'s' if value > 1 else ''} ago"
+
+    return "just now"
