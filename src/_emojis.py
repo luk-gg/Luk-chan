@@ -19,6 +19,8 @@ class LukEmojis:
     lukchan_noted = PartialEmoji.from_str("<:lukchan_noted:1421678005721501817>")
     lukchan_nerd = PartialEmoji.from_str("<:lukchan_nerd:1421677995290001418>")
     lukchan_cool = PartialEmoji.from_str("<:lukchan_cool:1421677985760809000>")
+    lukchan_waving = PartialEmoji.from_str("<a:lukchan_waving:1478684159173070848>")
+    lukchan_point = PartialEmoji.from_str("<:lukchan_point:1542763095456350299>")
 
     # Imagines
     tina = PartialEmoji.from_str("<:TinaA0:1447755776402784480>")

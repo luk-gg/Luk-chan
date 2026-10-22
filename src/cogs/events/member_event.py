@@ -26,7 +26,7 @@ class MemberJoinEvent(commands.Cog):
                 view=MemberJoinView(member),
                 allowed_mentions=AllowedMentions.none(),
             )
-            await msg.add_reaction(LukEmojis.wave)
+            await msg.add_reaction(LukEmojis.lukchan_waving)
 
 
 async def setup(bot: commands.Bot) -> None:
